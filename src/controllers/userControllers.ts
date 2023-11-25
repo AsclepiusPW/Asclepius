@@ -1,7 +1,8 @@
-import e, { Request, Response } from 'express';
+import { Request, Response } from 'express';
 import { prisma } from '../prismaClient/prismaClient';
 import { v4 as uuidv4 } from 'uuid';
 import bcryptjs from 'bcryptjs';
+import { sign } from 'jsonwebtoken';
 
 export const findAllUsers = async (req:Request, res: Response) => {
     try {
@@ -46,8 +47,14 @@ export const createUser = async (req:Request, res:Response) => {
             }
         });
 
-        if (existUser) {
-            res.status(400).json({ "erro": "Existing user with this e-mail" });
+        const existUserWithTelefone = await prisma.user.findUnique({
+            where:{
+                telefone: telefone
+            }
+        })
+
+        if (existUser || existUserWithTelefone) {
+            res.status(400).json({ "erro": "Existing user with this e-mail or with this telefone" });
         }else{
             //Criptografando a senha do usuário:
             const salt = await bcryptjs.genSalt(15);
@@ -71,6 +78,68 @@ export const createUser = async (req:Request, res:Response) => {
 
             //Retornando o usuário
             res.status(200).json(createNewUser);
+        }
+    } catch (error) {
+        //Retornando erro caso haja
+        console.error("Error retrieving users: ", error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
+
+//Requisção para criar um token para o usuário
+export const authenticateUser = async (req:Request, res:Response) => {
+    try {
+        const {name, password, confirmPassword, email} = req.body;
+        
+        //Validações (Servem para garantir que todos os campos do formulário tenham sido passados)
+        if (!name) {
+            res.status(400).json({ "erro": "The name is mandatory" });
+        }
+        if (!password) {
+            res.status(400).json({ "erro": "The password is mandatory" });
+        }
+        if (confirmPassword !== password) {
+            res.status(400).json({ "erro": "Check your password" });
+        }
+        if (!email) {
+            res.status(400).json({ "erro": "The email is mandatory" });
+        }
+
+        //Validando que o usuário realmente existe (Busca pelo o e-mail)
+        const existUser = await prisma.user.findUnique({
+            where:{
+                email: email
+            }
+        });
+
+        if (!existUser) {
+            res.status(400).json({ "erro": "User does not exist" });
+        }else{
+            //Coferindo a senha passada com a senha salva no banco
+            const checkPassword = await bcryptjs.compare(password, existUser?.password);
+            
+            //Conferido o usuário que passou a senha (True se verdadeiro e False se falso)
+            const compareName = existUser?.name === name;
+
+            if (!checkPassword || !compareName) {
+                res.status(400).json({ "erro": "Invalid password or user" });
+            }else{
+                const secret = process.env.SECRET;
+                //Método para confirmar que realmente o segredo do JWT existe
+                if (!secret) {
+                    throw new Error('JWT secret is not defined');
+                }
+
+                const token = sign(
+                    {
+                        id: existUser?.id
+                    },
+                    secret,
+                    {expiresIn: "1d", subject:existUser.id}
+                );
+
+                res.status(200).json({"message": "Authentication successful", token});
+            }
         }
     } catch (error) {
         //Retornando erro caso haja
