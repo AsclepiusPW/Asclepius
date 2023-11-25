@@ -21,7 +21,7 @@ type Location{
 //Entidade usuário
 model User{
   id String @id @default(uuid()) @map("_id") //Se for usar o mongodb lembra do @map(_id)
-  name String?
+  name String
   password String
   image String?
   email String @unique
