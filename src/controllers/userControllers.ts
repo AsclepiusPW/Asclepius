@@ -131,9 +131,7 @@ export const authenticateUser = async (req:Request, res:Response) => {
                 }
 
                 const token = sign(
-                    {
-                        id: existUser?.id
-                    },
+                    {name: existUser.name},
                     secret,
                     {expiresIn: "1d", subject:existUser.id}
                 );
