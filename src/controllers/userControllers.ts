@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../prismaClient/prismaClient';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4, validate } from 'uuid';
 import bcryptjs from 'bcryptjs';
 import { sign } from 'jsonwebtoken';
 
@@ -139,6 +139,42 @@ export const authenticateUser = async (req:Request, res:Response) => {
                 res.status(200).json({"message": "Authentication successful", token});
             }
         }
+    } catch (error) {
+        //Retornando erro caso haja
+        console.error("Error retrieving users: ", error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
+
+//Requisiçõa para remover um usuário
+export const removeUsers = async (req:Request, res: Response) => {
+    try {
+        const userId = req.params.id;
+
+        //Verificando se o id passado é válido
+        if (!validate(userId)) {
+            return res.status(400).json({error: "Invalid id"});
+        }
+
+        //Verificando se o usuário realmente existe
+        const existUserId = await prisma.user.findUnique({
+            where:{
+                id: userId
+            }
+        });
+
+        if (!existUserId) {
+            res.status(400).json({error: "Not existing user"})
+        }else{
+            await prisma.user.delete({
+                where:{
+                    id: userId
+                }
+            });
+
+            res.status(200).json({message: "User removed"});
+        }
+        
     } catch (error) {
         //Retornando erro caso haja
         console.error("Error retrieving users: ", error);
