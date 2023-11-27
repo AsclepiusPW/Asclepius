@@ -146,6 +146,72 @@ export const authenticateUser = async (req:Request, res:Response) => {
     }
 }
 
+//Método de atualização do usuário (Possível método para atualizar)
+export const editUser = async (req:Request, res: Response) => {
+    try {
+        const idUser = req.params.id;
+        const {name, password, confirmPassword, email, telefone, image, latitude, longitude} = req.body;
+
+        //Procurando o usuário pelo o id
+        const existUserWithId = await prisma.user.findUnique({
+            where:{
+                id: idUser
+            }
+        });
+        
+        //Confirmando que o usuário existe
+        if (!existUserWithId) {
+            return res.status(400).json({error: "Not existing user"});
+        }
+
+        //Validações (Atualizar para usar ZOD ou YUP)
+        if(!name){
+            res.status(400).json({ "erro": "The name is mandatory" });
+        }
+        if (!password) {
+            res.status(400).json({ "erro": "The password is mandatory" });
+        }
+        if (confirmPassword !== password) {
+            res.status(400).json({ "erro": "Check your password" });
+        }
+        if (!email) {
+            res.status(400).json({ "erro": "The email is mandatory" });
+        }
+        if (!telefone) {
+            res.status(400).json({ "erro": "The telefone is mandatory" });
+        }
+        if (!latitude || !longitude) {
+            res.status(400).json({ "erro": "The location is mandatory" });
+        }
+
+        //Criptografando a senha do usuário:
+        const salt = await bcryptjs.genSalt(15);
+        const hashPassword = await bcryptjs.hash(password, salt);
+
+        const updateUser = await prisma.user.update({
+            where:{
+                id: idUser
+            },
+            data:{
+                name: name,
+                password: hashPassword,
+                email: email,
+                telefone: telefone,
+                location: {
+                    latitude: latitude,
+                    longitude: longitude
+                }
+            }
+        });
+
+        res.status(200).json({message: "Updated User", updateUser});
+    } catch (error) {
+      //Retornando erro caso haja
+      console.error("Error retrieving users: ", error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+}
+
 //Requisiçõa para remover um usuário
 export const removeUsers = async (req:Request, res: Response) => {
     try {
