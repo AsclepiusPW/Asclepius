@@ -3,12 +3,13 @@ const prismaMock = {
     user: {
         findUnique: jest.fn(),
         create: jest.fn(),
+        delete: jest.fn(),
     },
 };
 
 //Importando os arquivos
 import { Request, Response } from "express";
-import { createUser } from "../controllers/userControllers";
+import { createUser, removeUsers } from "../controllers/userControllers";
 
 //Mockando o banco do prisma
 jest.mock("../prismaClient/prismaClient", () => ({
@@ -86,6 +87,39 @@ describe("Fluxo normal", () => {
         });
         expect(res.status).toHaveBeenCalledWith(200); //Resultado esperado do status
     });
+
+    //Caso de test 003
+    it("Deve ser possível remover um usuário", async ()=>{
+        //Supondo que exista um usuário com esse id
+        const userId = "026857bb-d5e9-4634-9170-2687a33f669e";
+        prismaMock.user.findUnique.mockResolvedValueOnce({id: userId});
+
+        //Criando objeto request
+        const req = {
+            params: {
+                id: userId
+            },
+        } as unknown as Request;
+
+         //Criando o objeto response
+        const res = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn(),
+        } as unknown as Response;
+
+        //Procedimento
+        await removeUsers(req, res);
+
+        //Resultados
+        //Verifica se a função delete foi chamada de forma correta
+        expect(prismaMock.user.delete).toHaveBeenCalledWith({
+            where: {id: userId}
+        });
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith({
+            "message": "User removed", 
+        });
+    });
 });
 
 describe("Fluxo de exceções", ()=>{
@@ -95,7 +129,7 @@ describe("Fluxo de exceções", ()=>{
         jest.clearAllMocks();
     });
 
-    //Caso de teste 003
+    //Caso de teste 004
     it("Não deve ser permitido a criação de um usuário sem um nome", async ()=>{
         const req = {
             body: {
@@ -122,7 +156,7 @@ describe("Fluxo de exceções", ()=>{
         });
     });
     
-    //Caso de teste 004
+    //Caso de teste 005
     it("Não deve ser possível criar um usuário que não possua uma senha", async () => {
         const req = { //Criando objeto request
             body: {
@@ -150,7 +184,7 @@ describe("Fluxo de exceções", ()=>{
         });
     });
     
-    //Casos de teste 005
+    //Casos de teste 006
     it("Não deve ser possivel cadastrar um usuário em que senha e confirmação de senha são incompatíveis", async () => {
         const req = { //Criando objeto request
             body: {
@@ -180,7 +214,7 @@ describe("Fluxo de exceções", ()=>{
         });
     });
     
-    //Caso de teste 006
+    //Caso de teste 007
     it("Não deve ser possível cadastrar um usuário sem um email",async () => {
         const req = { //Criando objeto request
             body: {
@@ -209,7 +243,7 @@ describe("Fluxo de exceções", ()=>{
         });
     });
     
-    //Caso de teste 007
+    //Caso de teste 008
     it("Não deve ser possível cadastrar um usuário sem um telefone", async ()=>{
         const req = { //Criando obejto request
             body: {
@@ -238,7 +272,7 @@ describe("Fluxo de exceções", ()=>{
         });
     });
     
-    //Caso de teste 008
+    //Caso de teste 009
     it("Não deve ser possível cadastrar um usuário sem a suas posição geográficas", async ()=>{
         const req = { //Criando obejto request
             body: {
@@ -266,6 +300,7 @@ describe("Fluxo de exceções", ()=>{
         });
     });
 
+    //Caso de teste 010
     it("Deve retornar erro se usuário com o mesmo email ou telefone já existe", async () => {
         // Simulando que existe usuário com o mesmo email
         prismaMock.user.findUnique.mockResolvedValueOnce({ id: 'existingUserId' });
@@ -305,5 +340,34 @@ describe("Fluxo de exceções", ()=>{
         expect(res.json).toHaveBeenCalledWith({ //Retorno da mensagem
             "error": "Existing user with this e-mail or with this telefone",
         });
+    });
+
+    //Caso de teste 011
+    it("Não deve ser possível realizar uma remoção com o id inválido", async ()=>{
+        //Supondo que exista um usuário com esse id
+        const userId = "026857bb-d5e9-4634-9170-2687a33f66";
+        prismaMock.user.findUnique.mockResolvedValueOnce({id: userId});
+
+        //Criando objeto request
+        const req = {
+            params: {
+                id: userId
+            },
+        } as unknown as Request;
+
+         //Criando o objeto response
+        const res = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn(),
+        } as unknown as Response;
+
+        //Procedimento
+        await removeUsers(req, res);
+
+        //Resultados
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({
+            "error": "Invalid id", 
+        });        
     });
 });
