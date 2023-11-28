@@ -22,22 +22,22 @@ export const createUser = async (req:Request, res:Response) => {
 
         //Validações (Atualizar para usar ZOD ou YUP)
         if(!name){
-            res.status(400).json({ "erro": "The name is mandatory" });
+            return res.status(400).json({ "error": "The name is mandatory" });
         }
         if (!password) {
-            res.status(400).json({ "erro": "The password is mandatory" });
+            return res.status(400).json({ "error": "The password is mandatory" });
         }
         if (confirmPassword !== password) {
-            res.status(400).json({ "erro": "Check your password" });
+            return res.status(400).json({ "error": "Check your password" });
         }
         if (!email) {
-            res.status(400).json({ "erro": "The email is mandatory" });
+            return res.status(400).json({ "error": "The email is mandatory" });
         }
         if (!telefone) {
-            res.status(400).json({ "erro": "The telefone is mandatory" });
+            return res.status(400).json({ "error": "The telefone is mandatory" });
         }
         if (!latitude || !longitude) {
-            res.status(400).json({ "erro": "The location is mandatory" });
+            return res.status(400).json({ "error": "The location is mandatory" });
         }
 
         //Verificando se já não existe um usuário com o email cadastrado:
@@ -54,7 +54,7 @@ export const createUser = async (req:Request, res:Response) => {
         })
 
         if (existUser || existUserWithTelefone) {
-            res.status(400).json({ "erro": "Existing user with this e-mail or with this telefone" });
+            return res.status(400).json({ "error": "Existing user with this e-mail or with this telefone" });
         }else{
             //Criptografando a senha do usuário:
             const salt = await bcryptjs.genSalt(15);
