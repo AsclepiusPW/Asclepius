@@ -17,7 +17,7 @@ export const findAllUsers = async (req: Request, res: Response) => {
 };
 
 //Requisição para pegar as informações de um usuário específico
-export const findSpecificUser = async (req:Request, res: Response) => {
+export const findSpecificUser = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
 
@@ -31,19 +31,19 @@ export const findSpecificUser = async (req:Request, res: Response) => {
       where: {
         id: userId,
       },
-      select:{ //Dados do usuário que serão mostrados
+      select: {
+        //Dados do usuário que serão mostrados
         image: true,
         name: true,
         email: true,
         telefone: true,
-        location: true
-      }
+        location: true,
+      },
     });
     if (!userExist) {
-      return res.status(400).json({error: "User not found"});
+      return res.status(400).json({ error: "User not found" });
     }
     res.status(200).json(userExist);
-  
   } catch (error) {
     //Retornando erro caso haja
     console.error("Error retrieving users: ", error);
@@ -98,11 +98,9 @@ export const createUser = async (req: Request, res: Response) => {
     });
 
     if (existUser || existUserWithTelefone) {
-      return res
-        .status(400)
-        .json({
-          error: "Existing user with this e-mail or with this telefone",
-        });
+      return res.status(400).json({
+        error: "Existing user with this e-mail or with this telefone",
+      });
     } else {
       //Criptografando a senha do usuário:
       const salt = await bcryptjs.genSalt(15);
@@ -309,51 +307,51 @@ export const removeUsers = async (req: Request, res: Response) => {
 //Requisição para o upload de arquivos de foto
 export const uploadImage = async (req: Request, res: Response) => {
   try {
-      //Pegando dados do body
-      const {name, email} = req.body;
-      //Pegando a imagem passada
-      const requestImage = req.file as Express.Multer.File;
-      
-      //Validações (Atualizar para usar ZOD ou YUP)
-      if(!name){
-          return res.status(400).json({ "error": "The name is mandatory" });
-      }
-      if (!email) {
-          return res.status(400).json({ "error": "The email is mandatory" });
-      }
-      if (!requestImage) {
-        return res.status(400).json({ "error": "The image is mandatory" });
-      }
+    //Pegando dados do body
+    const { name, email } = req.body;
+    //Pegando a imagem passada
+    const requestImage = req.file as Express.Multer.File;
 
-      //Validando que o usuário realmente existe (Busca pelo o e-mail)
-      const existUser = await prisma.user.findUnique({
-          where:{
-              email: email
-          }
+    //Validações (Atualizar para usar ZOD ou YUP)
+    if (!name) {
+      return res.status(400).json({ error: "The name is mandatory" });
+    }
+    if (!email) {
+      return res.status(400).json({ error: "The email is mandatory" });
+    }
+    if (!requestImage) {
+      return res.status(400).json({ error: "The image is mandatory" });
+    }
+
+    //Validando que o usuário realmente existe (Busca pelo o e-mail)
+    const existUser = await prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
+
+    if (!existUser) {
+      res.status(400).json({ erro: "User does not exist" });
+    } else {
+      //Verificano se as credendicias são compatíveis
+      if (existUser.name !== name) {
+        return res.status(400).json({ error: "Invalid user" });
+      }
+      //Atualizando o usuário com a imagem
+      await prisma.user.update({
+        where: {
+          email: email,
+        },
+        data: {
+          image: requestImage.filename,
+        },
       });
 
-      if (!existUser) {
-          res.status(400).json({ "erro": "User does not exist" });
-      }else{
-        //Verificano se as credendicias são compatíveis
-        if (existUser.name !== name) {
-          return res.status(400).json({ error: "Invalid user" });
-        }
-          //Atualizando o usuário com a imagem
-          await prisma.user.update({
-              where:{
-                  email: email,
-              },
-              data:{
-                  image: requestImage.filename
-              }
-          });
-
-          res.status(200).json({"massage": "Imagem adicionada"});
-      }
+      res.status(200).json({ massage: "Imagem adicionada" });
+    }
   } catch (error) {
-      //Retornando erro caso haja
-      console.error("Error retrieving users: ", error);
-      return res.status(500).json({ error: 'Internal Server Error' });
+    //Retornando erro caso haja
+    console.error("Error retrieving users: ", error);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
-}
+};
