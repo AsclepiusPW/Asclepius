@@ -4,6 +4,7 @@ const prismaMock = {
     findUnique: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+    delete: jest.fn(),
   },
 };
 
@@ -12,6 +13,7 @@ import { Request, Response } from "express";
 import {
   createVaccines,
   editVaccine,
+  removeVaccine,
 } from "../../controllers/vaccinesController";
 import { v4 as uuid } from "uuid";
 
@@ -26,7 +28,7 @@ describe("Testando o fluxo normal da Api", () => {
     jest.clearAllMocks();
   });
 
-  //Caso de teste 001 da rota vaccine
+  //Caso de teste 001 - para a função createVaccine
   it("Deve ser possível adicionar uma nova vacina", async () => {
     // Criando o objeto request
     const req = {
@@ -52,6 +54,7 @@ describe("Testando o fluxo normal da Api", () => {
     expect(res.status).toHaveBeenCalledWith(200);
   });
 
+  // Caso de teste 002 - para a função editVaccine
   it("Deve ser possívle editar uma vacina existente", async () => {
     // Criando um id
     const vaccineId: String = uuid();
@@ -98,6 +101,38 @@ describe("Testando o fluxo normal da Api", () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
       message: "Updated Vaccine",
+    });
+  });
+
+  //Caso de teste 003 - para a função removeVaccine
+  it("", async () => {
+    // Criando o objeto request
+    const vaccineId: String = uuid();
+    prismaMock.vaccine.findUnique.mockRejectedValueOnce({ id: vaccineId });
+
+    const req = {
+      params: {
+        id: vaccineId,
+      },
+    } as unknown as Request;
+
+    // Criando o objeto response
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    } as unknown as Response;
+
+    // Removendo vacina
+    await removeVaccine(req, res);
+
+    // Resultados esperados
+    // Verificando se a função delete foi chamada de forma correta
+    expect(prismaMock.vaccine.delete).toHaveBeenCalledWith({
+      where: { id: vaccineId },
+    });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({
+      message: "Vaccine removed",
     });
   });
 });
