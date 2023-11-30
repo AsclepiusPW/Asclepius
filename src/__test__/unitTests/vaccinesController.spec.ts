@@ -11,7 +11,7 @@ import { Request, Response } from "express";
 import { createVaccines } from "../../controllers/vaccinesController";
 
 //Mokando o banco de dados
-jest.mock("../../prismaClient/prismaClient.", () => ({
+jest.mock("../../prismaClient/prismaClient", () => ({
   prisma: prismaMock,
 }));
 
