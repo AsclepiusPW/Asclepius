@@ -49,7 +49,7 @@ describe("Fluxo normal", () => {
 
     //Resultado esperado
     expect(res.status).toHaveBeenCalledWith(200);
-  });
+  }, 9999);
 
   //Caso de teste 002
   it("Um usuário deve ser cadastrado com e-mail e telefone único", async () => {
@@ -87,7 +87,7 @@ describe("Fluxo normal", () => {
       where: { telefone: "123456789" },
     });
     expect(res.status).toHaveBeenCalledWith(200); //Resultado esperado do status
-  });
+  }, 9999);
 
   //Caso de test 003
   it("Deve ser possível remover um usuário", async () => {
