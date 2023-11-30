@@ -17,7 +17,7 @@ export const findAllUsers = async (req: Request, res: Response) => {
 };
 
 //Requisição para pegar as informações de um usuário específico
-export const findSpecificUser = async (req:Request, res: Response) => {
+export const findSpecificUser = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
 
@@ -31,19 +31,19 @@ export const findSpecificUser = async (req:Request, res: Response) => {
       where: {
         id: userId,
       },
-      select:{ //Dados do usuário que serão mostrados
+      select: {
+        //Dados do usuário que serão mostrados
         image: true,
         name: true,
         email: true,
         telefone: true,
-        location: true
-      }
+        location: true,
+      },
     });
     if (!userExist) {
-      return res.status(400).json({error: "User not found"});
+      return res.status(400).json({ error: "User not found" });
     }
     res.status(200).json(userExist);
-  
   } catch (error) {
     //Retornando erro caso haja
     console.error("Error retrieving users: ", error);
@@ -97,11 +97,9 @@ export const createUser = async (req: Request, res: Response) => {
     });
 
     if (existUser || existUserWithTelefone) {
-      return res
-        .status(400)
-        .json({
-          error: "Existing user with this e-mail or with this telefone",
-        });
+      return res.status(400).json({
+        error: "Existing user with this e-mail or with this telefone",
+      });
     } else {
       //Criptografando a senha do usuário:
       const salt = await bcryptjs.genSalt(15);
@@ -353,8 +351,8 @@ export const uploadImage = async (req: Request, res: Response) => {
           res.status(200).json({"massage": "Imagem adicionada"});
       }
   } catch (error) {
-      //Retornando erro caso haja
-      console.error("Error retrieving users: ", error);
-      return res.status(500).json({ error: 'Internal Server Error' });
+    //Retornando erro caso haja
+    console.error("Error retrieving users: ", error);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
-}
+};
