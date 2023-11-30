@@ -6,11 +6,13 @@ import {
   findAllVaccines,
   createVaccines,
   editVaccine,
+  removeVaccine,
 } from "../controllers/vaccinesController";
 
 //Rotas
 vaccinesRoutes.get("/", findAllVaccines);
 vaccinesRoutes.post("/", createVaccines);
 vaccinesRoutes.patch("/:id", editVaccine);
+vaccinesRoutes.delete("/:id", removeVaccine);
 
 export { vaccinesRoutes };
