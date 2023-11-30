@@ -12,7 +12,7 @@ import {
 //Rotas
 vaccinesRoutes.get("/", findAllVaccines);
 vaccinesRoutes.post("/", createVaccines);
-vaccinesRoutes.patch("/:id", editVaccine);
-vaccinesRoutes.delete("/:id", removeVaccine);
+vaccinesRoutes.patch("/update/:id", editVaccine);
+vaccinesRoutes.delete("/remove/:id", removeVaccine);
 
 export { vaccinesRoutes };
