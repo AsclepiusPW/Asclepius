@@ -59,7 +59,6 @@ export const createUser = async (req: Request, res: Response) => {
       confirmPassword,
       email,
       telefone,
-      image,
       latitude,
       longitude,
     } = req.body;
@@ -120,7 +119,7 @@ export const createUser = async (req: Request, res: Response) => {
             latitude: latitude,
             longitude: longitude,
           },
-          image: image, //Ainda não configurando o upload de arquivos
+          image: "Image not registered", //Ainda não configurando o upload de arquivos
         },
       });
 
@@ -200,13 +199,18 @@ export const authenticateUser = async (req: Request, res: Response) => {
 export const editUser = async (req: Request, res: Response) => {
   try {
     const idUser = req.params.id;
+
+    //Verificando se o id passado é válido
+    if (!validate(idUser)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+
     const {
       name,
       password,
       confirmPassword,
       email,
       telefone,
-      image,
       latitude,
       longitude,
     } = req.body;
@@ -225,27 +229,34 @@ export const editUser = async (req: Request, res: Response) => {
 
     //Validações (Atualizar para usar ZOD ou YUP)
     if (!name) {
-      res.status(400).json({ erro: "The name is mandatory" });
+      return res.status(400).json({ error: "The name is mandatory" });
     }
     if (!password) {
-      res.status(400).json({ erro: "The password is mandatory" });
+      return res.status(400).json({ error: "The password is mandatory" });
     }
     if (confirmPassword !== password) {
-      res.status(400).json({ erro: "Check your password" });
+      return res.status(400).json({ error: "Check your password" });
     }
     if (!email) {
-      res.status(400).json({ erro: "The email is mandatory" });
+      return res.status(400).json({ error: "The email is mandatory" });
     }
     if (!telefone) {
-      res.status(400).json({ erro: "The telefone is mandatory" });
+      return res.status(400).json({ error: "The telefone is mandatory" });
     }
     if (!latitude || !longitude) {
-      res.status(400).json({ erro: "The location is mandatory" });
+      return res.status(400).json({ error: "The location is mandatory" });
     }
 
     //Criptografando a senha do usuário:
     const salt = await bcryptjs.genSalt(15);
     const hashPassword = await bcryptjs.hash(password, salt);
+
+    //Validando email e telefone
+    const userEmail = await prisma.user.findUnique({where:{email:email}});
+    const userTelefone = await prisma.user.findUnique({where:{telefone: telefone}}); 
+    if (userEmail || userTelefone) {
+      return res.status(400).json({ error: "E-mail or phone is already being used by another user" });
+    }
 
     const updateUser = await prisma.user.update({
       where: {
@@ -306,43 +317,33 @@ export const removeUsers = async (req: Request, res: Response) => {
   }
 };
 
-//Requisição para o upload de arquivos de foto
+//Requisição para o upload (criação e edição ) de arquivos de foto
 export const uploadImage = async (req: Request, res: Response) => {
   try {
-      //Pegando dados do body
-      const {name, email} = req.body;
+      //Pegando dados da requisição
+      const userId = req.params.id;
       //Pegando a imagem passada
       const requestImage = req.file as Express.Multer.File;
       
-      //Validações (Atualizar para usar ZOD ou YUP)
-      if(!name){
-          return res.status(400).json({ "error": "The name is mandatory" });
+      //Verificando se o id passado é válido
+      if (!validate(userId)) {
+        return res.status(400).json({ error: "Invalid id" });
       }
-      if (!email) {
-          return res.status(400).json({ "error": "The email is mandatory" });
-      }
-      if (!requestImage) {
-        return res.status(400).json({ "error": "The image is mandatory" });
-      }
-
+      
       //Validando que o usuário realmente existe (Busca pelo o e-mail)
       const existUser = await prisma.user.findUnique({
           where:{
-              email: email
+              id: userId,
           }
       });
 
       if (!existUser) {
           res.status(400).json({ "erro": "User does not exist" });
       }else{
-        //Verificano se as credendicias são compatíveis
-        if (existUser.name !== name) {
-          return res.status(400).json({ error: "Invalid user" });
-        }
           //Atualizando o usuário com a imagem
           await prisma.user.update({
               where:{
-                  email: email,
+                  id: userId,
               },
               data:{
                   image: requestImage.filename
