@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../prismaClient/prismaClient";
-import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4, validate } from "uuid";
 import bcryptjs from "bcryptjs";
 import { sign } from "jsonwebtoken";
 
@@ -100,4 +100,35 @@ export const editVaccine = async (req: Request, res: Response) => {
 };
 
 //Requisiçõa para remover uma vacina
-export const removeVaccine = async (req: Request, res: Response) => {};
+export const removeVaccine = async (req: Request, res: Response) => {
+  try {
+    const vaccineId = req.params.id;
+
+    // Verificando se o id é válido
+    if (!validate(vaccineId)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+
+    // Verificando se a vacina existe
+    if (
+      !(await prisma.vaccine.findUnique({
+        where: {
+          id: vaccineId,
+        },
+      }))
+    ) {
+      res.status(400).json({ error: "Not existing vaccine" });
+    } else {
+      await prisma.vaccine.delete({
+        where: {
+          id: vaccineId,
+        },
+      });
+    }
+
+    return res.status(200).json({ message: "Vaccine removed" });
+  } catch (error) {
+    console.error("Error retrieving vaccine: ", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
