@@ -270,3 +270,55 @@ export const removeUsers = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+//Requisição para o upload de arquivos de foto
+export const uploadImage = async (req: Request, res: Response) => {
+  try {
+      //Pegando dados do body
+      const {name, email} = req.body;
+      //Pegando a imagem passada
+      const requestImage = req.file as Express.Multer.File;
+      
+      //Validações (Atualizar para usar ZOD ou YUP)
+      if(!name){
+          return res.status(400).json({ "error": "The name is mandatory" });
+      }
+      if (!email) {
+          return res.status(400).json({ "error": "The email is mandatory" });
+      }
+      if (!requestImage) {
+        return res.status(400).json({ "error": "The image is mandatory" });
+      }
+
+      //Validando que o usuário realmente existe (Busca pelo o e-mail)
+      const existUser = await prisma.user.findUnique({
+          where:{
+              email: email
+          }
+      });
+
+      if (!existUser) {
+          res.status(400).json({ "erro": "User does not exist" });
+      }else{
+        //Verificano se as credendicias são compatíveis
+        if (existUser.name !== name) {
+          return res.status(400).json({ error: "Invalid user" });
+        }
+          //Atualizando o usuário com a imagem
+          await prisma.user.update({
+              where:{
+                  email: email,
+              },
+              data:{
+                  image: requestImage.filename
+              }
+          });
+
+          res.status(200).json({"massage": "Imagem adicionada"});
+      }
+  } catch (error) {
+      //Retornando erro caso haja
+      console.error("Error retrieving users: ", error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
