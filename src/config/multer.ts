@@ -1,13 +1,15 @@
 import multer, { Options } from "multer";
-import bcryptjs from "bcryptjs";
+import crypto from "crypto"
 import path from "path";
+
+//Arquivo de criptografia e padronixação do filename da imagem
+const fileHash = crypto.randomBytes(15).toString("hex");
 
 export default{
     //Definindo o destino e o nome do arquivo
     storage: multer.diskStorage({
         destination: path.join(__dirname, "..", "..", "uploads"),
-        filename: async (req, file, callback) => {
-            const fileHash = await bcryptjs.genSalt(15);
+        filename: (req, file, callback) => {
             const filename = `${fileHash}-${file.originalname}`;
 
             return callback(null, filename);
