@@ -16,6 +16,41 @@ export const findAllUsers = async (req: Request, res: Response) => {
   }
 };
 
+//Requisição para pegar as informações de um usuário específico
+export const findSpecificUser = async (req:Request, res: Response) => {
+  try {
+    const userId = req.params.id;
+
+    //Verificando se o id passado é válido
+    if (!validate(userId)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+
+    //Validando que de fato o usuário exista
+    const userExist = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select:{ //Dados do usuário que serão mostrados
+        image: true,
+        name: true,
+        email: true,
+        telefone: true,
+        location: true
+      }
+    });
+    if (!userExist) {
+      return res.status(400).json({error: "User not found"});
+    }
+    res.status(200).json(userExist);
+  
+  } catch (error) {
+    //Retornando erro caso haja
+    console.error("Error retrieving users: ", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 export const createUser = async (req: Request, res: Response) => {
   try {
     const {
