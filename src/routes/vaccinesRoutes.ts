@@ -5,10 +5,12 @@ const vaccinesRoutes = express.Router();
 import {
   findAllVaccines,
   createVaccines,
+  editVaccine,
 } from "../controllers/vaccinesController";
 
 //Rotas
 vaccinesRoutes.get("/", findAllVaccines);
 vaccinesRoutes.post("/", createVaccines);
+vaccinesRoutes.patch("/:id", editVaccine);
 
 export { vaccinesRoutes };
