@@ -132,3 +132,24 @@ export const removeVaccine = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+//Requisição buscar uma vacina pelo id
+export const findVaccineById = async (req: Request, res: Response) => {
+  try {
+    const vaccineId = req.params.id;
+
+    const vaccine = await prisma.vaccine.findUnique({
+      where: {
+        id: vaccineId,
+      },
+    });
+    if (!vaccine) {
+      return res.status(400).json({ message: "vaccine not found" });
+    }
+
+    return res.status(200).json(vaccine);
+  } catch (error) {
+    console.error("Error retrieving vaccine: ", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
