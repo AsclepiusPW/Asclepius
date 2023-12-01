@@ -76,3 +76,40 @@ export const findAllCalendars = async (req: Request, res:Response) => {
         return res.status(500).json({ error: "Internal Server Error" });
     }
 }
+
+export const findSpecificCalendar = async (req: Request, res: Response) =>{
+    try {
+        const calendarId = req.params.id;
+
+        //Verificando se o id passado é válido
+        if (!validate(calendarId)) {
+            return res.status(400).json({ error: "Invalid id" });
+        }
+
+        //Valiando a existência do evento no calendário de vacinação
+        const existEventCalendar = await prisma.vaccinationCalendar.findUnique({
+            where:{
+                id: calendarId,
+            },
+            select:{
+                //Campos que serão retornados na requisição
+                local: true,
+                date: true,
+                places: true,
+                responsible: true,
+                observation: true,
+                status: true,
+                scheduleVaccine: true
+            }
+        });
+
+        if (!existEventCalendar) {
+            return res.status(400).json({ error: "Evente not found" });
+        }
+        res.status(200).json(existEventCalendar);
+    } catch (error) {
+        //Caso haja erro:
+        console.error("Error retrieving calendar: ", error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+}
