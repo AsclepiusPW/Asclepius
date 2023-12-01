@@ -14,8 +14,8 @@ datasource db {
 
 //Tipo para a geolocalização
 type Location{
-  latitude Decimal
-  longitude Decimal
+  latitude Float
+  longitude Float
 }
 
 //Entidade usuário
@@ -49,8 +49,8 @@ model VaccinationCalendar{
   local String
   date DateTime
   places Int
-  status String
-  observation String
+  status String?
+  observation String?
   responsible String
   scheduleVaccine ScheduleVaccine[] 
   requestReservation RequestReservation[]
