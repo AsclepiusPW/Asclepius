@@ -171,3 +171,35 @@ export const updateEventCalendar = async (req: Request, res:Response) => {
         return res.status(500).json({ error: "Internal Server Error" });
     }
 };
+
+export const removeEvent = async (req: Request, res: Response) =>{
+    try {
+        const eventId = req.params.id;
+
+        //Verificando se o id passado é válido
+        if (!validate(eventId)) {
+            return res.status(400).json({ error: "Invalid id" });
+        }
+
+        //Verificando se existe o evento com o id informado
+        const existEventInCalendar = await prisma.vaccinationCalendar.findUnique({
+            where:{
+                id: eventId
+            }
+        }); 
+        if (!existEventInCalendar) {
+            return res.status(400).json({ error: "Evente not found" });
+        }
+        await prisma.vaccinationCalendar.delete({
+            where:{
+                id: eventId,
+            },
+        });
+
+        res.status(200).json({ message: "Event removed" });
+    } catch (error) {
+        //Caso haja erro:
+        console.error("Error retrieving calendar: ", error);
+        return res.status(500).json({ error: "Internal Server Error" });        
+    }
+};
