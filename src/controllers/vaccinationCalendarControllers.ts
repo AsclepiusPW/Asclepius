@@ -66,3 +66,13 @@ export const createCalendar = async (req: Request, res: Response) => {
     }
 };
 
+export const findAllCalendars = async (req: Request, res:Response) => {
+    try {
+        const calendars = await prisma.vaccinationCalendar.findMany();
+        return res.status(200).json(calendars);
+    } catch (error) {
+        //Caso haja erro:
+        console.error("Error retrieving calendar: ", error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+}

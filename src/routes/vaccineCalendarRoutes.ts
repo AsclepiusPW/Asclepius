@@ -1,8 +1,9 @@
 import express from 'express';
 const eventRoutes = express.Router();
 
-import { createCalendar } from '../controllers/vaccinationCalendarControllers';
+import { findAllCalendars, createCalendar } from '../controllers/vaccinationCalendarControllers';
 
+eventRoutes.get("/", findAllCalendars);
 eventRoutes.post("/", createCalendar);
 
-export { eventRoutes };
+export {eventRoutes };
