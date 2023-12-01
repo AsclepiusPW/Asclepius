@@ -4,12 +4,13 @@ const prismaMock = {
     findUnique: jest.fn(),
     create: jest.fn(),
     delete: jest.fn(),
+    update: jest.fn(),
   },
 };
 
 //Importando os arquivos
 import { Request, Response } from "express";
-import { createUser, removeUsers } from "../../controllers/userControllers";
+import { createUser, removeUsers, editUser } from "../../controllers/userControllers";
 
 //Mockando o banco do prisma
 jest.mock("../../prismaClient/prismaClient", () => ({
@@ -117,6 +118,68 @@ describe("Fluxo normal", () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
       message: "User removed",
+    });
+  });
+
+  //Caso de test 004
+  it("Deve ser possível atualizar um usuário", async ()=>{
+    //Supondo que exista um usuário com esse id
+    const userId = "026857bb-d5e9-4634-9170-2687a33f669e";
+    prismaMock.user.findUnique.mockResolvedValueOnce({ 
+      id: userId,
+      name: "John",
+      password: "password",
+      confirmPassword: "password",
+      email: "john@example.com",
+      telefone: "123456519",
+      latitude: 12.345,
+      longitude: 56.782,
+    });
+
+    //Criando objeto body
+    const updateUser = {
+        name: "John Doe",
+        password: "password123",
+        confirmPassword: "password123",
+        email: "john.doe@example.com",
+        telefone: "123456789",
+        latitude: 12.34,
+        longitude: 56.78,
+    }
+
+    //Criando objeto request
+    const req = {
+      params: {
+        id: userId,
+      },
+      body: updateUser,
+    } as unknown as Request;
+
+    //Criando o objeto response
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    } as unknown as Response;
+
+    //Procedimento
+    await editUser(req, res);
+
+    //Resultados
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where:{
+        id: userId,
+      },
+      data: expect.objectContaining({
+        name: "John Doe",
+        password: expect.any(String), // Ou ajuste conforme necessário
+        email: "john.doe@example.com",
+        telefone: "123456789",
+        location: {
+          latitude: 12.34,
+          longitude: 56.78,
+        },
+      }),
     });
   });
 });
@@ -370,6 +433,69 @@ describe("Fluxo de exceções", () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({
       error: "Invalid id",
+    });
+  });
+
+  //Caso de teste 012
+  it("Não deve ser possível atualizar um usuário com uma informação já cadastrada a outro usuário", async () => {
+    //Supondo que exista um usuário com esse id
+    const userId = "026857bb-d5e9-4634-9170-2687a33f669e";
+    prismaMock.user.findUnique.mockResolvedValueOnce({ 
+      id: userId,
+      name: "John",
+      password: "password",
+      confirmPassword: "password",
+      email: "john@example.com",
+      telefone: "123456519",
+      latitude: 12.345,
+      longitude: 56.782,
+    });
+
+    //Supundo que já exista um outro usuário com informações já cadastradas
+    prismaMock.user.findUnique.mockResolvedValueOnce({
+      id: "035557bb-d5s9-1234-9170-5677a33f664d",
+      name: "John Wick",
+      password: "password123",
+      confirmPassword: "password123",
+      email: "john.doe@example.com",
+      telefone: "123456789",
+      latitude: 12.345,
+      longitude: 56.782,
+    });
+
+    //Criando objeto body
+    const updateUser = {
+        name: "John Doe",
+        password: "password123",
+        confirmPassword: "password123",
+        email: "john.doe@example.com",
+        telefone: "123456789",
+        latitude: 12.34,
+        longitude: 56.78,
+    }
+
+    //Criando objeto request
+    const req = {
+      params: {
+        id: userId,
+      },
+      body: updateUser,
+    } as unknown as Request;
+
+    //Criando o objeto response
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    } as unknown as Response;
+
+    //Procedimento
+    await editUser(req, res);
+
+    //Resultados
+    expect(res.status).toHaveBeenCalledWith(400);
+    //Retornar erro de atualização
+    expect(res.json).toHaveBeenCalledWith({
+      error: "E-mail or phone is already being used by another user",
     });
   });
 });
