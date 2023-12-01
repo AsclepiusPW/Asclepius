@@ -105,10 +105,10 @@ describe("Testando o fluxo normal da Api", () => {
   });
 
   //Caso de teste 003 - para a função removeVaccine
-  it("", async () => {
+ it("Deve ser possível remover uma vacina já cadastrada", async () => {
     // Criando o objeto request
-    const vaccineId: String = uuid();
-    prismaMock.vaccine.findUnique.mockRejectedValueOnce({ id: vaccineId });
+    const vaccineId: string = uuid();
+    prismaMock.vaccine.findUnique.mockResolvedValueOnce({ id: vaccineId });
 
     const req = {
       params: {
@@ -126,6 +126,11 @@ describe("Testando o fluxo normal da Api", () => {
     await removeVaccine(req, res);
 
     // Resultados esperados
+    // Verificando se a função findUnique foi chamada de forma correta
+    expect(prismaMock.vaccine.findUnique).toHaveBeenCalledWith({
+      where: { id: vaccineId },
+    });
+
     // Verificando se a função delete foi chamada de forma correta
     expect(prismaMock.vaccine.delete).toHaveBeenCalledWith({
       where: { id: vaccineId },
