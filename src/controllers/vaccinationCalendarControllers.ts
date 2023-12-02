@@ -93,7 +93,7 @@ export const findSpecificCalendar = async (req: Request, res: Response) =>{
         });
 
         if (!existEventCalendar) {
-            return res.status(400).json({ error: "Evente not found" });
+            return res.status(400).json({ error: "Event not found" });
         }
         res.status(200).json(existEventCalendar);
     } catch (error) {
@@ -120,7 +120,7 @@ export const updateEventCalendar = async (req: Request, res:Response) => {
             }
         }); 
         if (!existEventInCalendar) {
-            return res.status(400).json({ error: "Evente not found" });
+            return res.status(400).json({ error: "Event not found" });
         }
 
         //Validações iniciais
@@ -188,7 +188,7 @@ export const removeEvent = async (req: Request, res: Response) =>{
             }
         }); 
         if (!existEventInCalendar) {
-            return res.status(400).json({ error: "Evente not found" });
+            return res.status(400).json({ error: "Event not found" });
         }
         await prisma.vaccinationCalendar.delete({
             where:{
