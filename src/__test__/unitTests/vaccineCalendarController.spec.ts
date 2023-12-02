@@ -235,4 +235,43 @@ describe("Fluxo de exceções", () => {
             message: 'Event with venue and date already registered',
         });
     });
+
+    it("Deve retornar erro se o evento não for encontrado", async () => {
+        const nonExistentEventId = "026857bb-d5e9-4634-9170-2687a33f669e";
+        prismaMock.vaccinationCalendar.findUnique.mockResolvedValueOnce(null);
+    
+        const req = {
+          params: {
+            id: nonExistentEventId,
+          },
+          body: {
+            local: "Novo local",
+            date: "2023-12-01T10:00:00.000Z",
+            places: 50,
+            responsible: "Novo responsável",
+          },
+        } as unknown as Request;
+    
+        const res = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn(),
+        } as unknown as Response;
+    
+        await updateEventCalendar(req, res);
+    
+        // Verificando se a função findUnique foi chamada corretamente
+        expect(prismaMock.vaccinationCalendar.findUnique).toHaveBeenCalledWith({
+          where: { id: nonExistentEventId },
+        });
+    
+        // Verificando se a função findFirst não foi chamada (pois o evento não foi encontrado)
+        expect(prismaMock.vaccinationCalendar.findFirst).not.toHaveBeenCalled();
+    
+        // Verificando se a função update não foi chamada (pois o evento não foi encontrado)
+        expect(prismaMock.vaccinationCalendar.update).not.toHaveBeenCalled();
+    
+        // Verificando se a resposta está correta
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(res.json).toHaveBeenCalledWith({ error: "Event not found" });
+      });
 });
