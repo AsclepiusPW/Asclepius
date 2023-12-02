@@ -50,9 +50,38 @@ describe("Fluxo normal", () => {
         expect(res.status).toHaveBeenCalledWith(200);
     });
 
-    
+    //Caso de test 002
+    it("Deve ser possível remover um evento já cadastrado", async () => {
+        //Supondo que exista um evento com esse id
+        const eventId = "026857bb-d5e9-4634-9170-2687a33f669e";
+        prismaMock.vaccinationCalendar.findUnique.mockResolvedValueOnce({ id: eventId });
 
-    
+        //Criando um objeto request
+        const req = {
+            params: {
+                id: eventId,
+            }
+        } as unknown as Request;
+
+        //Criando um obejto response
+        const res = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn(),
+        } as unknown as Response;
+
+        //Procedimento
+        await removeEvent(req, res);
+
+        //Resultados
+        //Verifica se a função delete foi chamada de forma correta
+        expect(prismaMock.vaccinationCalendar.delete).toHaveBeenCalledWith({
+            where: { id: eventId },
+        });
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith({
+            message: "Event removed",
+        });
+    });
 });
 
 describe("Fluxo de exceções", () => {
