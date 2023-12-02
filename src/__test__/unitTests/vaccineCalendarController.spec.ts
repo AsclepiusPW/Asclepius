@@ -50,7 +50,7 @@ describe("Fluxo normal", () => {
         expect(res.status).toHaveBeenCalledWith(200);
     });
 
-    //Caso de test 002
+    //Caso de teste 002
     it("Deve ser possível remover um evento já cadastrado", async () => {
         //Supondo que exista um evento com esse id
         const eventId = "026857bb-d5e9-4634-9170-2687a33f669e";
