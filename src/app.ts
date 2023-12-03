@@ -3,6 +3,7 @@ import path from "path";
 import { userRoutes } from "./routes/userRoutes";
 import { vaccinesRoutes } from "./routes/vaccinesRoutes";
 import { eventRoutes } from "./routes/vaccineCalendarRoutes";
+import { vaccinationRoutes } from "./routes/vaccination";
 
 //Configurações iniciais
 const app = express();
@@ -16,6 +17,9 @@ app.use("/vaccine", vaccinesRoutes);
 
 //Rotas de eventos do calendário de vacina
 app.use("/event", eventRoutes);
+
+//Rotas de registro de vacinação
+app.use("/register", vaccinationRoutes);
 
 //Configurando rota para upload de arquivo
 app.use("/images", express.static(path.join(__dirname, "..", "uploads")));
