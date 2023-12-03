@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../prismaClient/prismaClient";
 import { v4 as uuidv4, validate } from "uuid";
+import { parseISO, isValid } from "date-fns";
 
 export const createCalendar = async (req: Request, res: Response) => {
     try {
@@ -12,6 +13,9 @@ export const createCalendar = async (req: Request, res: Response) => {
         }
         if (!date) {
             return res.status(400).json({ error: "The date is mandatory" });
+        }
+        if (!isValid(parseISO(date))) {
+            return res.status(400).json({ error: "Incorrect date entered" });
         }
         if (!places) {
             return res.status(400).json({ error: "The places is mandatory" });
@@ -129,6 +133,9 @@ export const updateEventCalendar = async (req: Request, res:Response) => {
         }
         if (!date) {
             return res.status(400).json({ error: "The date is mandatory" });
+        }
+        if (!isValid(parseISO(date))) {
+            return res.status(400).json({ error: "Incorrect date entered" });
         }
         if (!places) {
             return res.status(400).json({ error: "The places is mandatory" });
