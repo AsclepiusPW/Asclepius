@@ -1,17 +1,16 @@
 import { Request, Response } from "express";
 import { prisma } from "../prismaClient/prismaClient";
 import { v4 as uuidv4, validate } from "uuid";
-import bcryptjs from "bcryptjs";
-import { sign } from "jsonwebtoken";
 
+//Método para listar as vacinas
 export const findAllVaccines = async (req: Request, res: Response) => {
   try {
-    //Buscando todos os usuários cadastrados no sistema
+    //Buscando todos as vacinas cadastradas no sistema
     const vaccine = await prisma.vaccine.findMany();
     return res.status(200).json(vaccine);
   } catch (error) {
     //Retornando erro caso haja
-    console.error("Error retrieving users: ", error);
+    console.error("Error retrieving vaccine: ", error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 };
@@ -20,7 +19,7 @@ export const createVaccines = async (req: Request, res: Response) => {
   try {
     const { name, type, manufacturer, description, contraIndication } =
       req.body;
-    if (!name && !type && !manufacturer && !description && !contraIndication) {
+    if (!name || !type || !manufacturer || !description || !contraIndication) {
       return res.status(400).json({ error: "All fields must be filled out" });
     }
 
@@ -59,23 +58,28 @@ export const createVaccines = async (req: Request, res: Response) => {
 export const editVaccine = async (req: Request, res: Response) => {
   try {
     const vaccineId = req.params.id;
-    const { name, type, manufacturer, description, contraIndication } =
-      req.body;
+
+    //Validando se o id é valido:
+    if (!validate(vaccineId)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+
+    const { name, type, manufacturer, description, contraIndication } = req.body;
 
     // Verificando de uma vacina já existe
-    if (
-      !(await prisma.vaccine.findUnique({
-        where: {
-          id: vaccineId,
-        },
-      }))
-    ) {
+    if (!(await prisma.vaccine.findUnique({ where: { id: vaccineId } }))) {
       return res.status(400).json({ error: "Not existing vaccine" });
     }
 
     // Validando todos os atributos
-    if (!name && !type && !manufacturer && !description && !contraIndication) {
+    if (!name || !type || !manufacturer || !description || !contraIndication) {
       return res.status(400).json({ error: "All fields must be filled out" });
+    }
+
+    //Verificando se não já existe uma vacina com o nome que deseja ser atualizado
+    const vaccineName = await prisma.vaccine.findUnique({ where: { name: name} });
+    if(vaccineName){
+      return res.status(400).json({ error: "There is already a registered vaccine with this name "});
     }
 
     // Update dos atributos
@@ -110,14 +114,8 @@ export const removeVaccine = async (req: Request, res: Response) => {
     }
 
     // Verificando se a vacina existe
-    if (
-      !(await prisma.vaccine.findUnique({
-        where: {
-          id: vaccineId,
-        },
-      }))
-    ) {
-      res.status(400).json({ error: "Not existing vaccine" });
+    if (!(await prisma.vaccine.findUnique({ where: { id: vaccineId } }))) {
+      return res.status(400).json({ error: "Not existing vaccine" });
     } else {
       await prisma.vaccine.delete({
         where: {
@@ -138,10 +136,23 @@ export const findVaccineById = async (req: Request, res: Response) => {
   try {
     const vaccineId = req.params.id;
 
+    // Verificando se o id é válido
+    if (!validate(vaccineId)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+
+    //Procurando vacina pelo o id
     const vaccine = await prisma.vaccine.findUnique({
       where: {
         id: vaccineId,
       },
+      select:{ //Listando os campos que desejas retornar
+        name: true,
+        type: true,
+        manufacturer: true,
+        description: true,
+        contraIndication: true,
+      }
     });
     if (!vaccine) {
       return res.status(400).json({ message: "vaccine not found" });
