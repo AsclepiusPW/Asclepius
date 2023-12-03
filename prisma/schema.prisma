@@ -61,10 +61,10 @@ model VaccinationCalendar{
 model Vaccination{
   id String @id @default(uuid()) @map("_id")
   date DateTime
-  quantityApplied Int
-  idUser String 
+  quantityApplied Int?
+  idUser String?
   idVaccine String
-  user User @relation(fields: [idUser], references: [id])
+  user User? @relation(fields: [idUser], references: [id])
   vaccine Vaccine @relation(fields: [idVaccine], references: [id])
 }
 
