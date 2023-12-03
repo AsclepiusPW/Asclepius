@@ -104,3 +104,69 @@ export const listVaccination = async (req: Request, res: Response) => {
     }
 };
 
+//Método para remover um registro 
+export const removeVaccination = async (req: Request, res: Response) => {
+    try {
+        //Pegando o id do usuário através do token passado pela a requisição
+        const userId = req.id_User;
+
+        //Pegando o id do registro de vacinação
+        const vaccinationId = req.params.id;
+
+        //Verificando se o id passado é válido
+        if (!validate(vaccinationId)) {
+            return res.status(400).json({ error: "Invalid id" });
+        }
+
+        //Validando a existência do usuário e anexando a propriedade Vaccination
+        const searchUser = await prisma.user.findUnique({
+            where: {
+                id: userId,
+            },
+            include: {
+                vaccination: true,
+            }
+        });
+        if (!searchUser) {
+            return res.status(400).json({ error: "User not found" });
+        }
+
+        //Validação de registro de vacinação
+        const searchVaccination = await prisma.vaccination.findUnique({
+            where: {
+                id: vaccinationId
+            }
+        });
+        if (!searchVaccination) {
+            return res.status(400).json({ error: "Vaccination not found" });
+        }
+
+        //Removendo o registro de vacinção da entidade Vaccination
+        await prisma.vaccination.delete({
+            where: {
+                id: vaccinationId,
+            }
+        });
+
+        //Atualizando a remoção do usuário
+        const updateRemoveUser = await prisma.user.update({
+            where: {
+                id: userId,
+            },
+            data:{
+                vaccination: {
+                    disconnect: [{id: vaccinationId}]
+                }
+            },
+            include:{
+                vaccination: true,
+            }
+        });
+
+        res.status(200).json(updateRemoveUser);
+    } catch (error) {
+        //Retornando erro caso haja
+        console.error("Error retrieving vaccination: ", error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+}
