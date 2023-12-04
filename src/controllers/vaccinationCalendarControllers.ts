@@ -5,7 +5,7 @@ import { parseISO, isValid } from "date-fns";
 
 export const createCalendar = async (req: Request, res: Response) => {
     try {
-        const { local, date, places, status, observation, responsible } = req.body;
+        const { local, date, places, status, observation, responsible, vaccine } = req.body;
 
         //Validações iniciais
         if (!local) {
@@ -22,6 +22,19 @@ export const createCalendar = async (req: Request, res: Response) => {
         }
         if (!responsible) {
             return res.status(400).json({ error: "The responsible is mandatory" });
+        }
+        if (!vaccine) {
+            return res.status(400).json({ error: "The vaccine is mandatory" });
+        }
+
+        //Validando que a vacina passada de fato existe
+        const searchVaccine = await prisma.vaccine.findUnique({
+            where: {
+                name: vaccine,
+            }
+        });
+        if (!searchVaccine) {
+            return res.status(400).json({ error: "Vaccine not found" });
         }
 
         // Verificar se há algum evento de calendário marcado para o mesmo local no mesmo dia
@@ -46,7 +59,8 @@ export const createCalendar = async (req: Request, res: Response) => {
                 places: places,
                 responsible: responsible,
                 status: "Status not informed" || status,
-                observation: "Observation not informed" || observation, 
+                observation: "Observation not informed" || observation,
+                idVaccine: searchVaccine.id, 
             }
         });
 
@@ -92,7 +106,7 @@ export const findSpecificCalendar = async (req: Request, res: Response) =>{
                 responsible: true,
                 observation: true,
                 status: true,
-                scheduleVaccine: true
+                idVaccine: true
             }
         });
 
@@ -110,7 +124,7 @@ export const findSpecificCalendar = async (req: Request, res: Response) =>{
 export const updateEventCalendar = async (req: Request, res:Response) => {
     try {
         const eventId = req.params.id;
-        const { local, date, places, status, observation, responsible } = req.body;
+        const { local, date, places, status, observation, responsible, vaccine } = req.body;
 
         //Verificando se o id passado é válido
         if (!validate(eventId)) {
@@ -143,12 +157,26 @@ export const updateEventCalendar = async (req: Request, res:Response) => {
         if (!responsible) {
             return res.status(400).json({ error: "The responsible is mandatory" });
         }
+        if (!vaccine) {
+            return res.status(400).json({ error: "The vaccine is mandatory" });
+        }
+
+        //Validando a existencia da vacina
+        const searchVaccine = await prisma.vaccine.findUnique({
+            where: {
+                name: vaccine,
+            }
+        });
+        if (!searchVaccine) {
+            return res.status(400).json({ error: "Vaccine not found" });
+        }
 
         // Verificar se há algum evento de calendário marcado para o mesmo local no mesmo dia
         const existingEvent = await prisma.vaccinationCalendar.findFirst({
             where: {
                 local: local,
                 date: date,
+                id: { not: eventId} //Se há algum evento cadastrado para esse dia e local porém desconsiderando o evento atualizado
             },
         });
 
@@ -169,6 +197,7 @@ export const updateEventCalendar = async (req: Request, res:Response) => {
                 responsible: responsible,
                 observation: observation,
                 status: status,
+                idVaccine: searchVaccine.id,
             }
         });
         res.status(200).json({ message: "Update event", updateEvent});
