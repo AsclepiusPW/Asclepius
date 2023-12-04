@@ -24,8 +24,11 @@ export const registerVaccination = async (req: Request, res: Response) => {
         if (!searchUser) {
             return res.status(400).json({ error: "User not found" });
         }
-        
+
         //Validação da vacina
+        if (!vaccine) {
+            return res.status(400).json({ error: "The vaccine is mandatory" });
+        }
         const searchVaccine = await prisma.vaccine.findUnique({
             where: {
                 name: vaccine,
@@ -34,7 +37,7 @@ export const registerVaccination = async (req: Request, res: Response) => {
         if (!searchVaccine) {
             return res.status(400).json({ error: "Vaccine not found" });
         }
-        
+
         //Validação de date
         if (!date) {
             return res.status(400).json({ error: "The date is mandatory" });
@@ -46,11 +49,11 @@ export const registerVaccination = async (req: Request, res: Response) => {
         //Validando que não existe registro cadastrado com data e a mesma vacina
         const verifyVaccineId = await prisma.vaccination.count({
             where: {
-              idUser: userId,
-              idVaccine: vaccine.id,
+                idUser: userId,
+                idVaccine: vaccine.id,
             },
-          });
-          
+        });
+
         const verifyVaccineDate = await searchUser.vaccination.some((resgiter) => isSameDay(new Date(resgiter.date), parseISO(date)));
         if (verifyVaccineId >= 1 && verifyVaccineDate) { //Validação dupla
             return res.status(400).json({ message: "Vaccination registration already done" });
@@ -153,12 +156,12 @@ export const removeVaccination = async (req: Request, res: Response) => {
             where: {
                 id: userId,
             },
-            data:{
+            data: {
                 vaccination: {
-                    disconnect: [{id: vaccinationId}]
+                    disconnect: [{ id: vaccinationId }]
                 }
             },
-            include:{
+            include: {
                 vaccination: true,
             }
         });
@@ -169,4 +172,108 @@ export const removeVaccination = async (req: Request, res: Response) => {
         console.error("Error retrieving vaccination: ", error);
         return res.status(500).json({ error: "Internal Server Error" });
     }
-}
+};
+
+//Método de atualização de um registro de vacinação
+export const updateVaccination = async (req: Request, res: Response) => {
+    try {
+        const userId = req.id_User;
+        const vaccinationId = req.params.id;
+        const { date, applied, vaccine } = req.body;
+
+        //Validando a existência do usuário e anexando a propriedade Vaccination
+        const searchUser = await prisma.user.findUnique({
+            where: {
+                id: userId,
+            },
+            include: {
+                vaccination: true,
+            }
+        });
+        if (!searchUser) {
+            return res.status(400).json({ error: "User not found" });
+        }
+
+        //Validação da vacina
+        if (!vaccine) {
+            return res.status(400).json({ error: "The vaccine is mandatory" });
+        }
+        const searchVaccine = await prisma.vaccine.findUnique({
+            where: {
+                name: vaccine,
+            }
+        });
+        if (!searchVaccine) {
+            return res.status(400).json({ error: "Vaccine not found" });
+        }
+
+        //Validação de date
+        if (!date || !isValid(parseISO(date))) {
+            return res.status(400).json({ error: "Incorrect date entered" });
+        }
+
+        //Verificando se o id passado é válido
+        if (!validate(vaccinationId)) {
+            return res.status(400).json({ error: "Invalid id" });
+        }
+
+        //Validação de registro de vacinação
+        const searchVaccination = await prisma.vaccination.findUnique({
+            where: {
+                id: vaccinationId
+            }
+        });
+        if (!searchVaccination) {
+            return res.status(400).json({ error: "Vaccination not found" });
+        }
+       
+        //Validar que não existe informação repedida
+        const isDuplicate = await prisma.vaccination.count({
+            where: {
+                idUser: userId,
+                idVaccine: vaccine.id,
+                date: parseISO(date),
+                id: { not: vaccinationId }, //Procura registros que possuam essas credenciais, porém desconsidera a versão atualizada
+            },
+        });
+        if (isDuplicate > 0) {
+            return res.status(400).json({ message: "Vaccination registration already done" });
+        }
+
+        // Atualizar o registro de vacinação
+        await prisma.vaccination.update({
+            where: { id: vaccinationId },
+            data: {
+                date: parseISO(date),
+                quantityApplied: applied,
+                idVaccine: searchVaccine.id,
+            },
+        });
+
+        // Atualizar o array de vaccinação dentro do usuário
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                vaccination: {
+                    update: [
+                        {
+                            where: { id: vaccinationId },
+                            data: {
+                                date: parseISO(date),
+                                quantityApplied: applied,
+                                idVaccine: searchVaccine.id,
+                            },
+                        },
+                    ],
+                },
+            },
+            include: { vaccination: true },
+        });
+
+        res.status(200).json({ message: "Up-to-date vaccination record", updatedUser });
+    } catch (error) {
+        //Retornando erro caso haja
+        console.error("Error retrieving vaccination: ", error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+};
