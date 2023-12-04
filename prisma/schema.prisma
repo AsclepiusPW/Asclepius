@@ -74,8 +74,8 @@ model RequestReservation{
   id String @id @default(uuid()) @map("_id")
   status String
   date DateTime
-  idUser String
-  idCalendar String
-  calendar VaccinationCalendar @relation(fields: [idCalendar], references: [id])
-  user User @relation(fields: [idUser], references: [id])
+  idUser String?
+  idCalendar String?
+  calendar VaccinationCalendar? @relation(fields: [idCalendar], references: [id])
+  user User? @relation(fields: [idUser], references: [id])
 }
