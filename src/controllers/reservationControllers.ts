@@ -171,7 +171,7 @@ export const updateReservation = async (req: Request, res: Response) => {
         //Pegando o id do usuário da requisição
         const userId = req.id_User;
         //Pegando as credenciais do body
-        const { date, idCalendar } = req.body;
+        const { date, idCalendar, status } = req.body;
         //Pegando o id da  reservation
         const idReservation = req.params.id;
 
@@ -240,6 +240,7 @@ export const updateReservation = async (req: Request, res: Response) => {
             data: {
                 date: date,
                 idCalendar: idCalendar,
+                status: status,
             }
         });
 
@@ -254,6 +255,7 @@ export const updateReservation = async (req: Request, res: Response) => {
                             data: {
                                 date: parseISO(date),
                                 idCalendar: idCalendar,
+                                status: status
                             },
                         },
                     ],
@@ -270,5 +272,4 @@ export const updateReservation = async (req: Request, res: Response) => {
         console.error("Error retrieving vaccination: ", error);
         return res.status(500).json({ error: "Internal Server Error" });
     }
-}
-//Método para atualizar o status da solicitação (patch)
+};
