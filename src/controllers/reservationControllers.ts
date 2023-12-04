@@ -4,7 +4,7 @@ import { v4 as uuidv4, validate } from "uuid";
 import { parseISO, isValid } from "date-fns";
 
 //Relação entre usuário e calendário de vacinação
-export const requestReservation = async (req:Request, res:Response) => {
+export const requestReservation = async (req: Request, res: Response) => {
     try {
         //Pegando o id do usuário da requisição
         const userId = req.id_User;
@@ -44,7 +44,7 @@ export const requestReservation = async (req:Request, res:Response) => {
 
         //Validar que não existe uma requisição do com a date e id do calendario
         const isDuplicate = await prisma.requestReservation.count({
-            where:{
+            where: {
                 idUser: userId,
                 idCalendar: idCalendar,
                 date: parseISO(date)
@@ -55,7 +55,7 @@ export const requestReservation = async (req:Request, res:Response) => {
         }
 
         const newRequestReservation = await prisma.requestReservation.create({
-            data:{
+            data: {
                 id: uuidv4(),
                 date: date,
                 status: "Reservation requested",
@@ -64,7 +64,7 @@ export const requestReservation = async (req:Request, res:Response) => {
             }
         });
 
-        res.status(200).json({ message: "Reservation requested", newRequestReservation});
+        res.status(200).json({ message: "Reservation requested", newRequestReservation });
     } catch (error) {
         //Retornando erro caso haja
         console.error("Error retrieving vaccination: ", error);
@@ -73,6 +73,32 @@ export const requestReservation = async (req:Request, res:Response) => {
 }
 
 //Método para listar todas as solicitações
+export const listReservations = async (req: Request, res: Response) => {
+    try {
+        //Pegando o id do usuário do tokne passado no headers da requisição
+        const userId = req.id_User;
+
+        //Validando a existência do usuário e anexando a propriedade Vaccination
+        const searchUser = await prisma.user.findUnique({
+            where: {
+                id: userId,
+            },
+            include: {
+                requestReservation: true,
+            }
+        });
+        if (!searchUser) {
+            return res.status(400).json({ error: "User not found" });
+        }
+
+        res.status(200).json(searchUser.requestReservation);
+    } catch (error) {
+        //Retornando erro caso haja
+        console.error("Error retrieving vaccination: ", error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+}
+
 //Método de remover uma solicitação
 //Método para atualizar uma solicitação (put)
 //Método para atualizar o status da solicitação (patch)
