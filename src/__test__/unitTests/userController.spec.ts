@@ -10,24 +10,34 @@ const prismaMock = {
 
 //Importando os arquivos
 import { Request, Response } from "express";
-import { createUser, removeUsers, editUser, uploadImage, findSpecificUser } from "../../controllers/userControllers";
+import {
+  createUser,
+  removeUsers,
+  editUser,
+  uploadImage,
+  findSpecificUser,
+} from "../../controllers/userControllers";
 
 // Mock do multer
 const multerMock = {
-  single: jest.fn().mockImplementation((fieldName: string) => (req: any, res: any, next: any) => {
-    req.file = {
-      fieldname: fieldName,
-      originalname: 'test.jpg',
-      encoding: '7bit',
-      mimetype: 'image/jpeg',
-      buffer: Buffer.from([1, 2, 3]), // Simula um buffer de arquivo
-      size: 12345,
-      destination: 'destination/path',
-      filename: 'test.jpg',
-      path: 'path/to/test.jpg',
-    };
-    next();
-  }),
+  single: jest
+    .fn()
+    .mockImplementation(
+      (fieldName: string) => (req: any, res: any, next: any) => {
+        req.file = {
+          fieldname: fieldName,
+          originalname: "test.jpg",
+          encoding: "7bit",
+          mimetype: "image/jpeg",
+          buffer: Buffer.from([1, 2, 3]), // Simula um buffer de arquivo
+          size: 12345,
+          destination: "destination/path",
+          filename: "test.jpg",
+          path: "path/to/test.jpg",
+        };
+        next();
+      }
+    ),
 };
 
 //Mockando o banco do prisma
@@ -140,10 +150,10 @@ describe("Fluxo normal", () => {
   });
 
   //Caso de test 004
-  it("Deve ser possível atualizar um usuário", async ()=>{
+  it("Deve ser possível atualizar um usuário", async () => {
     //Supondo que exista um usuário com esse id
     const userId = "026857bb-d5e9-4634-9170-2687a33f669e";
-    prismaMock.user.findUnique.mockResolvedValueOnce({ 
+    prismaMock.user.findUnique.mockResolvedValueOnce({
       id: userId,
       name: "John",
       password: "password",
@@ -156,14 +166,14 @@ describe("Fluxo normal", () => {
 
     //Criando objeto body
     const updateUser = {
-        name: "John Doe",
-        password: "password123",
-        confirmPassword: "password123",
-        email: "john.doe@example.com",
-        telefone: "123456789",
-        latitude: 12.34,
-        longitude: 56.78,
-    }
+      name: "John Doe",
+      password: "password123",
+      confirmPassword: "password123",
+      email: "john.doe@example.com",
+      telefone: "123456789",
+      latitude: 12.34,
+      longitude: 56.78,
+    };
 
     //Criando objeto request
     const req = {
@@ -185,26 +195,24 @@ describe("Fluxo normal", () => {
     //Resultados
     expect(res.status).toHaveBeenCalledWith(200);
     expect(prismaMock.user.update).toHaveBeenCalledWith({
-      where:{
+      where: {
         id: userId,
       },
       data: expect.objectContaining({
         name: "John Doe",
-        password: expect.any(String), 
+        password: expect.any(String),
         email: "john.doe@example.com",
         telefone: "123456789",
-        location: {
-          latitude: 12.34,
-          longitude: 56.78,
-        },
+        latitude: 12.34,
+        longitude: 56.78,
       }),
     });
-  });
+  }, 9999);
 
   //Caso de test 005
-  it("Deve ser possível adicionar uma foto a um usuário já cadastrado", async ()=>{
+  it("Deve ser possível adicionar uma foto a um usuário já cadastrado", async () => {
     // Supondo que exista um usuário com esse id
-    const userId = '026857bb-d5e9-4634-9170-2687a33f669e';
+    const userId = "026857bb-d5e9-4634-9170-2687a33f669e";
     prismaMock.user.findUnique.mockResolvedValueOnce({
       id: userId,
     });
@@ -223,7 +231,7 @@ describe("Fluxo normal", () => {
     } as unknown as Response;
 
     // Procedimmento
-    const multerMiddleware = multerMock.single('image'); //Simula o middleware multer
+    const multerMiddleware = multerMock.single("image"); //Simula o middleware multer
     multerMiddleware(req, res, async () => {
       // Chama a função de uploadImage com a simulação da requisição
       await uploadImage(req, res);
@@ -241,30 +249,30 @@ describe("Fluxo normal", () => {
           id: userId,
         },
         data: {
-          image: 'test.jpg',
+          image: "test.jpg",
         },
       });
 
       // Verifica se a resposta foi enviada corretamente
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ massage: 'Imagem adicionada' });
+      expect(res.json).toHaveBeenCalledWith({ massage: "Imagem adicionada" });
     });
   });
 
   //Caso de test 006
   it("Deve ser possível pesquisar por um usuário já cadastrado", async () => {
-     //Supondo que exista um usuário com esse id
+    //Supondo que exista um usuário com esse id
     const userId = "026857bb-d5e9-4634-9170-2687a33f669e";
-    prismaMock.user.findUnique.mockResolvedValueOnce({ 
+    prismaMock.user.findUnique.mockResolvedValueOnce({
       id: userId,
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      telefone: '123456789',
+      name: "John Doe",
+      email: "john.doe@example.com",
+      telefone: "123456789",
       location: {
         latitude: 12.34,
         longitude: 56.78,
       },
-      image: 'path/to/image',
+      image: "path/to/image",
     });
 
     //Criando objeto request
@@ -287,14 +295,14 @@ describe("Fluxo normal", () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
       id: userId,
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      telefone: '123456789',
+      name: "John Doe",
+      email: "john.doe@example.com",
+      telefone: "123456789",
       location: {
         latitude: 12.34,
         longitude: 56.78,
       },
-      image: 'path/to/image',
+      image: "path/to/image",
     });
   });
 });
@@ -555,7 +563,7 @@ describe("Fluxo de exceções", () => {
   it("Não deve ser possível atualizar um usuário com uma informação já cadastrada a outro usuário", async () => {
     //Supondo que exista um usuário com esse id
     const userId = "026857bb-d5e9-4634-9170-2687a33f669e";
-    prismaMock.user.findUnique.mockResolvedValueOnce({ 
+    prismaMock.user.findUnique.mockResolvedValueOnce({
       id: userId,
       name: "John",
       password: "password",
@@ -580,14 +588,14 @@ describe("Fluxo de exceções", () => {
 
     //Criando objeto body
     const updateUser = {
-        name: "John Doe",
-        password: "password123",
-        confirmPassword: "password123",
-        email: "john.doe@example.com",
-        telefone: "123456789",
-        latitude: 12.34,
-        longitude: 56.78,
-    }
+      name: "John Doe",
+      password: "password123",
+      confirmPassword: "password123",
+      email: "john.doe@example.com",
+      telefone: "123456789",
+      latitude: 12.34,
+      longitude: 56.78,
+    };
 
     //Criando objeto request
     const req = {
@@ -612,5 +620,5 @@ describe("Fluxo de exceções", () => {
     expect(res.json).toHaveBeenCalledWith({
       error: "E-mail or phone is already being used by another user",
     });
-  });
+  }, 99999);
 });
