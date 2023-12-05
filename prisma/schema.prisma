@@ -12,11 +12,6 @@ datasource db {
 
 //Criando entidades:
 
-//Tipo para a geolocalização
-type Location{
-  latitude Float
-  longitude Float
-}
 
 //Entidade usuário
 model User{
@@ -26,7 +21,8 @@ model User{
   image String?
   email String @unique
   telefone String @unique
-  location Location
+  latitude Float
+  longitude Float
   vaccination Vaccination[] 
   requestReservation RequestReservation[]
 }
