@@ -37,7 +37,8 @@ export const findSpecificUser = async (req: Request, res: Response) => {
         name: true,
         email: true,
         telefone: true,
-        location: true,
+        latitude: true,
+        longitude: true,
       },
     });
     if (!userExist) {
@@ -113,10 +114,8 @@ export const createUser = async (req: Request, res: Response) => {
           password: hashPassword,
           email: email,
           telefone: telefone,
-          location: {
-            latitude: latitude,
-            longitude: longitude,
-          },
+          latitude: latitude,
+          longitude: longitude,
           image: "Image not registered", //Ainda não configurando o upload de arquivos
         },
       });
@@ -250,10 +249,14 @@ export const editUser = async (req: Request, res: Response) => {
     const hashPassword = await bcryptjs.hash(password, salt);
 
     //Validando email e telefone
-    const userEmail = await prisma.user.findUnique({where:{email:email}});
-    const userTelefone = await prisma.user.findUnique({where:{telefone: telefone}}); 
+    const userEmail = await prisma.user.findUnique({ where: { email: email } });
+    const userTelefone = await prisma.user.findUnique({
+      where: { telefone: telefone },
+    });
     if (userEmail || userTelefone) {
-      return res.status(400).json({ error: "E-mail or phone is already being used by another user" });
+      return res.status(400).json({
+        error: "E-mail or phone is already being used by another user",
+      });
     }
 
     const updateUser = await prisma.user.update({
@@ -265,10 +268,9 @@ export const editUser = async (req: Request, res: Response) => {
         password: hashPassword,
         email: email,
         telefone: telefone,
-        location: {
-          latitude: latitude,
-          longitude: longitude,
-        },
+        latitude: latitude,
+        longitude: longitude,
+
       },
     });
 
@@ -318,38 +320,38 @@ export const removeUsers = async (req: Request, res: Response) => {
 //Requisição para o upload (criação e edição ) de arquivos de foto
 export const uploadImage = async (req: Request, res: Response) => {
   try {
-      //Pegando dados da requisição
-      const userId = req.params.id;
-      //Pegando a imagem passada
-      const requestImage = req.file as Express.Multer.File;
-      
-      //Verificando se o id passado é válido
-      if (!validate(userId)) {
-        return res.status(400).json({ error: "Invalid id" });
-      }
-      
-      //Validando que o usuário realmente existe (Busca pelo o e-mail)
-      const existUser = await prisma.user.findUnique({
-          where:{
-              id: userId,
-          }
+    //Pegando dados da requisição
+    const userId = req.params.id;
+    //Pegando a imagem passada
+    const requestImage = req.file as Express.Multer.File;
+
+    //Verificando se o id passado é válido
+    if (!validate(userId)) {
+      return res.status(400).json({ error: "Invalid id" });
+    }
+
+    //Validando que o usuário realmente existe (Busca pelo o e-mail)
+    const existUser = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (!existUser) {
+      res.status(400).json({ erro: "User does not exist" });
+    } else {
+      //Atualizando o usuário com a imagem
+      await prisma.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          image: requestImage.filename,
+        },
       });
 
-      if (!existUser) {
-          res.status(400).json({ "erro": "User does not exist" });
-      }else{
-          //Atualizando o usuário com a imagem
-          await prisma.user.update({
-              where:{
-                  id: userId,
-              },
-              data:{
-                  image: requestImage.filename
-              }
-          });
-
-          res.status(200).json({"massage": "Imagem adicionada"});
-      }
+      res.status(200).json({ massage: "Imagem adicionada" });
+    }
   } catch (error) {
     //Retornando erro caso haja
     console.error("Error retrieving users: ", error);
