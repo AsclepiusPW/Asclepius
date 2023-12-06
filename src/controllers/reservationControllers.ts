@@ -99,3 +99,70 @@ export const listReservations = async (req: Request, res: Response) => {
         return res.status(500).json({ error: "Internal Server Error" });
     }
 }
+
+//Método de remover uma solicitação
+export const removeReservation = async (req: Request, res: Response) => {
+    try {
+        //Pegando o id do usuário do tokne passado no headers da requisição
+        const userId = req.id_User;
+        //Pegando o id da reservation
+        const idReservationRemove = req.params.id;
+
+        //Verificando se o id passado é válido
+        if (!validate(idReservationRemove)) {
+            return res.status(400).json({ error: "Invalid id" });
+        }
+
+        //Validando a existência do usuário e anexando a propriedade Vaccination
+        const searchUser = await prisma.user.findUnique({
+            where: {
+                id: userId,
+            },
+            include: {
+                requestReservation: true,
+            }
+        });
+        if (!searchUser) {
+            return res.status(400).json({ error: "User not found" });
+        }
+
+        //Validando a existência de uma solicitação de reserva com esse id
+        const searchReservation = await prisma.requestReservation.findUnique({
+            where: {
+                id: idReservationRemove,
+            }
+        });
+        if (!searchReservation) {
+            return res.status(400).json({ error: "Request reservation not found" });
+        }
+
+        //Removendo a solicitação de reserva da entidade RequestReservation
+        await prisma.requestReservation.delete({
+            where:{
+                id: idReservationRemove,
+            }
+        });
+
+        //Atualizando o array do solicitações do usuário
+        const updateRemoveReservation = await prisma.user.update({
+            where:{
+                id: userId,
+            },
+            data:{
+                requestReservation: {
+                    disconnect: [{ id: idReservationRemove }]
+                },
+            },
+            include:{
+                requestReservation: true,
+            }
+        });
+
+        res.status(200).json({ message: "Reservation request removed", updateRemoveReservation});
+    } catch (error) {
+        //Retornando erro caso haja
+        console.error("Error retrieving vaccination: ", error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+}
+
