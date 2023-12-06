@@ -1,7 +1,10 @@
 //Importando o app do arquivo 'app.ts'
 import app from "./app";
 
+//Porta padrão da aplicação
+const port = process.env.API_PORT || 5000;
+
 //Inicializando a API
-app.listen(5000, () => {
-  console.log("Server is running in port 5000");
+app.listen(port, () => {
+  console.log(`Server is running in port ${port}`);
 });
