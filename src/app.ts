@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import cors from "cors";
 import { userRoutes } from "./routes/userRoutes";
 import { vaccinesRoutes } from "./routes/vaccinesRoutes";
 import { eventRoutes } from "./routes/vaccineCalendarRoutes";
@@ -9,6 +10,7 @@ import { reservationRoutes } from "./routes/reservationRoutes";
 //Configurações iniciais
 const app = express();
 app.use(express.json());
+app.use(cors()); //Configurando o cors
 
 //Rotas de usuário
 app.use("/user", userRoutes);
