@@ -4,7 +4,7 @@ import { existsSync, unlinkSync } from "fs";
 import path from "path";
 
 export async function verifyImageUser(req: Request, res: Response, next: NextFunction) {
-    const userId = req.params.id;
+    const userId = req.id_User;
 
     try {
         const existUser = await prisma.user.findUnique({

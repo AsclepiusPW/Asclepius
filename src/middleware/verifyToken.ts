@@ -12,7 +12,7 @@ export async function verifyToken(req:Request, res: Response, next: NextFunction
     const token = authHeader && authHeader.split(" ")[1];
     
     if (!token) {
-        return res.status(400).json({message: "Restricted access"});
+        return res.status(401).json({message: "Restricted access"});
     }
 
     try {
@@ -22,8 +22,8 @@ export async function verifyToken(req:Request, res: Response, next: NextFunction
         }
 
         let {name, sub} = verify(token, secret) as IPayload;
-        req.id_User = sub;
 
+        req.id_User = sub;
     } catch (error) {
         console.error(error);
         res.status(500).json({error: "Internal Server Error"});
