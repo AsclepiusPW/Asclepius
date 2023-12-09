@@ -1,7 +1,6 @@
 import express from "express";
 const reservationRoutes = express.Router();
 
-
 //Importando as funções de vaccination
 import { requestReservation, listReservations, removeReservation, updateReservation } from "../controllers/reservationControllers";
 import { verifyToken } from "../middleware/verifyToken";

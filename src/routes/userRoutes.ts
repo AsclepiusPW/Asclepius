@@ -13,12 +13,12 @@ import uploadConfigImage from '../config/multer';
 const upload = multer(uploadConfigImage); 
 
 //Rotas
-userRoutes.get("/", findAllUsers);
 userRoutes.post("/", createUser);
 userRoutes.post("/authentication", authenticateUser);
-userRoutes.put("/update/:id", verifyToken, editUser);
+userRoutes.get("/", verifyToken, findAllUsers);
+userRoutes.put("/update", verifyToken, editUser);
 userRoutes.get("/:id", verifyToken, findSpecificUser);
 userRoutes.delete("/remove/:id", verifyToken, removeUsers); //Quando deletar um usuário deve deletar a sua imagem  
-userRoutes.patch("/upload/:id", verifyToken, verifyImageUser, upload.single("image"), uploadImage); //Método de criar e editar a foto do usuário
+userRoutes.patch("/upload", verifyToken, verifyImageUser, upload.single("image"), uploadImage); //Método de criar e editar a foto do usuário
 
 export { userRoutes };
