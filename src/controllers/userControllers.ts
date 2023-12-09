@@ -3,6 +3,8 @@ import { prisma } from "../prismaClient/prismaClient";
 import { v4 as uuidv4, validate } from "uuid";
 import bcryptjs from "bcryptjs";
 import { sign } from "jsonwebtoken";
+import { z, ZodError } from 'zod';
+import { userSchema, authenticationSchema } from "../utils/validateUser";
 
 export const findAllUsers = async (req: Request, res: Response) => {
   try {
@@ -42,7 +44,7 @@ export const findSpecificUser = async (req: Request, res: Response) => {
       },
     });
     if (!userExist) {
-      return res.status(400).json({ error: "User not found" });
+      return res.status(404).json({ error: "User not found" });
     }
     res.status(200).json(userExist);
   } catch (error) {
@@ -54,34 +56,10 @@ export const findSpecificUser = async (req: Request, res: Response) => {
 
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const {
-      name,
-      password,
-      confirmPassword,
-      email,
-      telefone,
-      latitude,
-      longitude,
-    } = req.body;
-
-    //Validações (Atualizar para usar ZOD ou YUP)
-    if (!name) {
-      return res.status(400).json({ error: "The name is mandatory" });
-    }
-    if (!password) {
-      return res.status(400).json({ error: "The password is mandatory" });
-    }
+    const { name, password, confirmPassword, email, telefone, latitude, longitude } = userSchema.parse(req.body);
+    
     if (confirmPassword !== password) {
       return res.status(400).json({ error: "Check your password" });
-    }
-    if (!email) {
-      return res.status(400).json({ error: "The email is mandatory" });
-    }
-    if (!telefone) {
-      return res.status(400).json({ error: "The telefone is mandatory" });
-    }
-    if (!latitude || !longitude) {
-      return res.status(400).json({ error: "The location is mandatory" });
     }
 
     //Verificando se já não existe um usuário com o email cadastrado:
@@ -98,9 +76,7 @@ export const createUser = async (req: Request, res: Response) => {
     });
 
     if (existUser || existUserWithTelefone) {
-      return res.status(400).json({
-        error: "Existing user with this e-mail or with this telefone",
-      });
+      return res.status(409).json({ error: "Existing user with this e-mail or with this telefone" });
     } else {
       //Criptografando a senha do usuário:
       const salt = await bcryptjs.genSalt(15);
@@ -121,32 +97,31 @@ export const createUser = async (req: Request, res: Response) => {
       });
 
       //Retornando o usuário
-      res.status(200).json(createNewUser);
+      res.status(201).json(createNewUser);
     }
   } catch (error) {
     //Retornando erro caso haja
-    console.error("Error retrieving users: ", error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    if (error instanceof ZodError) {
+      const errorDetails = error.errors.map(err => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }));
+  
+      return res.status(400).json({ error: 'Validation failed', details: errorDetails });
+    } else {
+      console.error('Error retrieving users: ', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
   }
 };
 
 //Requisção para criar um token para o usuário
 export const authenticateUser = async (req: Request, res: Response) => {
   try {
-    const { name, password, confirmPassword, email } = req.body;
+    const { name, password, confirmPassword, email } = authenticationSchema.parse(req.body);
 
-    //Validações (Servem para garantir que todos os campos do formulário tenham sido passados)
-    if (!name) {
-      res.status(400).json({ erro: "The name is mandatory" });
-    }
-    if (!password) {
-      res.status(400).json({ erro: "The password is mandatory" });
-    }
     if (confirmPassword !== password) {
-      res.status(400).json({ erro: "Check your password" });
-    }
-    if (!email) {
-      res.status(400).json({ erro: "The email is mandatory" });
+      return res.status(400).json({ error: "Check your password" });
     }
 
     //Validando que o usuário realmente existe (Busca pelo o e-mail)
@@ -157,19 +132,16 @@ export const authenticateUser = async (req: Request, res: Response) => {
     });
 
     if (!existUser) {
-      res.status(400).json({ erro: "User does not exist" });
+      return res.status(404).json({ error: "User does not exist" });
     } else {
       //Coferindo a senha passada com a senha salva no banco
-      const checkPassword = await bcryptjs.compare(
-        password,
-        existUser?.password
-      );
+      const checkPassword = await bcryptjs.compare(password, existUser?.password);
 
       //Conferido o usuário que passou a senha (True se verdadeiro e False se falso)
       const compareName = existUser?.name === name;
 
       if (!checkPassword || !compareName) {
-        res.status(400).json({ erro: "Invalid password or user" });
+        return res.status(400).json({ error: "Invalid password or user" });
       } else {
         const secret = process.env.SECRET;
         //Método para confirmar que realmente o segredo do JWT existe
@@ -187,30 +159,27 @@ export const authenticateUser = async (req: Request, res: Response) => {
     }
   } catch (error) {
     //Retornando erro caso haja
-    console.error("Error retrieving users: ", error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    if (error instanceof ZodError) {
+      const errorDetails = error.errors.map(err => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }));
+
+      return res.status(400).json({ error: 'Validation failed', details: errorDetails });
+    } else {
+      // Retornar erro interno do servidor
+      console.error("Error retrieving users: ", error);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
   }
 };
 
 //Método de atualização do usuário (Possível método para atualizar)
 export const editUser = async (req: Request, res: Response) => {
   try {
-    const idUser = req.params.id;
-
-    //Verificando se o id passado é válido
-    if (!validate(idUser)) {
-      return res.status(400).json({ error: "Invalid id" });
-    }
-
-    const {
-      name,
-      password,
-      confirmPassword,
-      email,
-      telefone,
-      latitude,
-      longitude,
-    } = req.body;
+    const idUser = req.id_User; //Id vem do token
+    const userData = userSchema.parse(req.body);
+    const { name, password, confirmPassword, email, telefone, latitude, longitude } = userData;
 
     //Procurando o usuário pelo o id
     const existUserWithId = await prisma.user.findUnique({
@@ -221,27 +190,11 @@ export const editUser = async (req: Request, res: Response) => {
 
     //Confirmando que o usuário existe
     if (!existUserWithId) {
-      return res.status(400).json({ error: "Not existing user" });
+      return res.status(404).json({ error: "Not existing user" });
     }
 
-    //Validações (Atualizar para usar ZOD ou YUP)
-    if (!name) {
-      return res.status(400).json({ error: "The name is mandatory" });
-    }
-    if (!password) {
-      return res.status(400).json({ error: "The password is mandatory" });
-    }
     if (confirmPassword !== password) {
       return res.status(400).json({ error: "Check your password" });
-    }
-    if (!email) {
-      return res.status(400).json({ error: "The email is mandatory" });
-    }
-    if (!telefone) {
-      return res.status(400).json({ error: "The telefone is mandatory" });
-    }
-    if (!latitude || !longitude) {
-      return res.status(400).json({ error: "The location is mandatory" });
     }
 
     //Criptografando a senha do usuário:
@@ -249,14 +202,15 @@ export const editUser = async (req: Request, res: Response) => {
     const hashPassword = await bcryptjs.hash(password, salt);
 
     //Validando email e telefone
-    const userEmail = await prisma.user.findUnique({ where: { email: email } });
-    const userTelefone = await prisma.user.findUnique({
-      where: { telefone: telefone },
+    const userUpdate = await prisma.user.count({
+      where:{
+        email: email,
+        password: password,
+        id: { not: idUser}
+      }
     });
-    if (userEmail || userTelefone) {
-      return res.status(400).json({
-        error: "E-mail or phone is already being used by another user",
-      });
+    if (userUpdate > 0) {
+      return res.status(409).json({ error: "E-mail or phone is already being used by another user" });
     }
 
     const updateUser = await prisma.user.update({
@@ -269,16 +223,24 @@ export const editUser = async (req: Request, res: Response) => {
         email: email,
         telefone: telefone,
         latitude: latitude,
-        longitude: longitude,
-
+        longitude: longitude
       },
     });
 
-    res.status(200).json({ message: "Updated User", updateUser });
+    res.status(201).json({ message: "Updated User", updateUser });
   } catch (error) {
     //Retornando erro caso haja
-    console.error("Error retrieving users: ", error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    if (error instanceof ZodError) {
+      const errorDetails = error.errors.map(err => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }));
+  
+      return res.status(400).json({ error: 'Validation failed', details: errorDetails });
+    } else {
+      console.error('Error retrieving users: ', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
   }
 };
 
@@ -287,11 +249,10 @@ export const removeUsers = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id;
 
-    //Verificando se o id passado é válido
+    //Validando se o id é valido:
     if (!validate(userId)) {
       return res.status(400).json({ error: "Invalid id" });
     }
-
     //Verificando se o usuário realmente existe
     const existUserId = await prisma.user.findUnique({
       where: {
@@ -300,7 +261,7 @@ export const removeUsers = async (req: Request, res: Response) => {
     });
 
     if (!existUserId) {
-      res.status(400).json({ error: "Not existing user" });
+      return res.status(404).json({ error: "Not existing user" });
     } else {
       await prisma.user.delete({
         where: {
@@ -308,7 +269,7 @@ export const removeUsers = async (req: Request, res: Response) => {
         },
       });
 
-      res.status(200).json({ message: "User removed" });
+      return res.status(200).json({ message: "User removed" });
     }
   } catch (error) {
     //Retornando erro caso haja
@@ -320,17 +281,11 @@ export const removeUsers = async (req: Request, res: Response) => {
 //Requisição para o upload (criação e edição ) de arquivos de foto
 export const uploadImage = async (req: Request, res: Response) => {
   try {
-    //Pegando dados da requisição
-    const userId = req.params.id;
+    const userId = req.id_User;
     //Pegando a imagem passada
     const requestImage = req.file as Express.Multer.File;
 
-    //Verificando se o id passado é válido
-    if (!validate(userId)) {
-      return res.status(400).json({ error: "Invalid id" });
-    }
-
-    //Validando que o usuário realmente existe (Busca pelo o e-mail)
+    //Validando que o usuário realmente existe 
     const existUser = await prisma.user.findUnique({
       where: {
         id: userId,
@@ -338,7 +293,7 @@ export const uploadImage = async (req: Request, res: Response) => {
     });
 
     if (!existUser) {
-      res.status(400).json({ erro: "User does not exist" });
+      return res.status(404).json({ error: "User does not exist" });
     } else {
       //Atualizando o usuário com a imagem
       await prisma.user.update({
@@ -350,7 +305,7 @@ export const uploadImage = async (req: Request, res: Response) => {
         },
       });
 
-      res.status(200).json({ massage: "Imagem adicionada" });
+      res.status(201).json({ massage: "Imagem adicionada" });
     }
   } catch (error) {
     //Retornando erro caso haja

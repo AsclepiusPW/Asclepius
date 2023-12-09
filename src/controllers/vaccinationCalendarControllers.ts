@@ -2,31 +2,12 @@ import { Request, Response } from "express";
 import { prisma } from "../prismaClient/prismaClient";
 import { v4 as uuidv4, validate } from "uuid";
 import { parseISO, isValid } from "date-fns";
+import { ZodError } from "zod";
+import { calendarSchema } from "../utils/validateCalendarVaccination";
 
 export const createCalendar = async (req: Request, res: Response) => {
     try {
-        const { local, date, places, status, observation, responsible, vaccine } = req.body;
-
-        //Validações iniciais
-        if (!local) {
-            return res.status(400).json({ error: "The local is mandatory" });
-        }
-        if (!date) {
-            return res.status(400).json({ error: "The date is mandatory" });
-        }
-        if (!isValid(parseISO(date))) {
-            return res.status(400).json({ error: "Incorrect date entered" });
-        }
-        if (!places) {
-            return res.status(400).json({ error: "The places is mandatory" });
-        }
-        if (!responsible) {
-            return res.status(400).json({ error: "The responsible is mandatory" });
-        }
-        if (!vaccine) {
-            return res.status(400).json({ error: "The vaccine is mandatory" });
-        }
-
+        const { local, date, places, status, observation, responsible, vaccine } = calendarSchema.parse(req.body);
         //Validando que a vacina passada de fato existe
         const searchVaccine = await prisma.vaccine.findUnique({
             where: {
@@ -34,7 +15,12 @@ export const createCalendar = async (req: Request, res: Response) => {
             }
         });
         if (!searchVaccine) {
-            return res.status(400).json({ error: "Vaccine not found" });
+            return res.status(404).json({ error: "Vaccine not found" });
+        }
+
+        //Validação de date
+        if (!isValid(parseISO(date))) {
+            return res.status(400).json({ error: "Incorrect date entered" });
         }
 
         // Verificar se há algum evento de calendário marcado para o mesmo local no mesmo dia
@@ -47,7 +33,7 @@ export const createCalendar = async (req: Request, res: Response) => {
 
         // Caso já exista um evento com essas credenciais
         if (existingEvent) {
-            return res.status(400).json({ message: "Event with venue and date already registered" });
+            return res.status(409).json({ message: "Event with venue and date already registered" });
         }
 
         //Criando objeto o evento
@@ -65,11 +51,20 @@ export const createCalendar = async (req: Request, res: Response) => {
         });
 
         //Retornando resultado
-        res.status(200).json({ message: "Registered event", createEventInCalendar});
+        res.status(201).json({ message: "Registered event", createEventInCalendar});
     } catch (error) {
         //Caso haja erro:
-        console.error("Error retrieving calendar: ", error);
-        return res.status(500).json({ error: "Internal Server Error" });
+        if (error instanceof ZodError) {
+            const errorDetails = error.errors.map(err => ({
+              field: err.path.join('.'),
+              message: err.message,
+            }));
+      
+            return res.status(400).json({ error: 'Validation failed', details: errorDetails });
+          } else {
+            console.error('Error retrieving calendar: ', error);
+            return res.status(500).json({ error: 'Internal Server Error' });
+          }
     }
 };
 
@@ -111,7 +106,7 @@ export const findSpecificCalendar = async (req: Request, res: Response) =>{
         });
 
         if (!existEventCalendar) {
-            return res.status(400).json({ error: "Event not found" });
+            return res.status(404).json({ error: "Event not found" });
         }
         res.status(200).json(existEventCalendar);
     } catch (error) {
@@ -124,7 +119,7 @@ export const findSpecificCalendar = async (req: Request, res: Response) =>{
 export const updateEventCalendar = async (req: Request, res:Response) => {
     try {
         const eventId = req.params.id;
-        const { local, date, places, status, observation, responsible, vaccine } = req.body;
+        const { local, date, places, status, observation, responsible, vaccine } = calendarSchema.parse(req.body);
 
         //Verificando se o id passado é válido
         if (!validate(eventId)) {
@@ -138,28 +133,12 @@ export const updateEventCalendar = async (req: Request, res:Response) => {
             }
         }); 
         if (!existEventInCalendar) {
-            return res.status(400).json({ error: "Event not found" });
+            return res.status(404).json({ error: "Event not found" });
         }
 
-        //Validações iniciais
-        if (!local) {
-            return res.status(400).json({ error: "The local is mandatory" });
-        }
-        if (!date) {
-            return res.status(400).json({ error: "The date is mandatory" });
-        }
         if (!isValid(parseISO(date))) {
-            return res.status(400).json({ error: "Incorrect date entered" });
-        }
-        if (!places) {
-            return res.status(400).json({ error: "The places is mandatory" });
-        }
-        if (!responsible) {
-            return res.status(400).json({ error: "The responsible is mandatory" });
-        }
-        if (!vaccine) {
-            return res.status(400).json({ error: "The vaccine is mandatory" });
-        }
+           return res.status(400).json({ error: "Incorrect date entered" });
+       }
 
         //Validando a existencia da vacina
         const searchVaccine = await prisma.vaccine.findUnique({
@@ -168,7 +147,7 @@ export const updateEventCalendar = async (req: Request, res:Response) => {
             }
         });
         if (!searchVaccine) {
-            return res.status(400).json({ error: "Vaccine not found" });
+            return res.status(404).json({ error: "Vaccine not found" });
         }
 
         // Verificar se há algum evento de calendário marcado para o mesmo local no mesmo dia
@@ -182,7 +161,7 @@ export const updateEventCalendar = async (req: Request, res:Response) => {
 
         // Caso já exista um evento com essas credenciais
         if (existingEvent) {
-            return res.status(400).json({ message: "Event with venue and date already registered" });
+            return res.status(409).json({ message: "Event with venue and date already registered" });
         }
 
         //Criando objeto de atualização
@@ -203,8 +182,17 @@ export const updateEventCalendar = async (req: Request, res:Response) => {
         res.status(200).json({ message: "Update event", updateEvent});
     } catch (error) {
         //Caso haja erro:
-        console.error("Error retrieving calendar: ", error);
-        return res.status(500).json({ error: "Internal Server Error" });
+        if (error instanceof ZodError) {
+            const errorDetails = error.errors.map(err => ({
+                field: err.path.join('.'),
+                message: err.message,
+            }));
+    
+            return res.status(400).json({ error: 'Validation failed', details: errorDetails });
+        } else {
+            console.error('Error:', error);
+            return res.status(500).json({ error: 'Internal Server Error' });
+        }
     }
 };
 
@@ -224,7 +212,7 @@ export const removeEvent = async (req: Request, res: Response) =>{
             }
         }); 
         if (!existEventInCalendar) {
-            return res.status(400).json({ error: "Event not found" });
+            return res.status(404).json({ error: "Event not found" });
         }
         await prisma.vaccinationCalendar.delete({
             where:{

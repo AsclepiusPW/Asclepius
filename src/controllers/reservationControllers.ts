@@ -21,7 +21,7 @@ export const requestReservation = async (req: Request, res: Response) => {
             }
         });
         if (!searchUser) {
-            return res.status(400).json({ error: "User not found" });
+            return res.status(404).json({ error: "User not found" });
         }
 
         //Validar a existência do evento no calendário
@@ -34,7 +34,7 @@ export const requestReservation = async (req: Request, res: Response) => {
             }
         });
         if (!searchEvent) {
-            return res.status(400).json({ error: "Event not found" });
+            return res.status(404).json({ error: "Event not found" });
         }
 
         //Validar a date
@@ -51,7 +51,7 @@ export const requestReservation = async (req: Request, res: Response) => {
             },
         });
         if (isDuplicate > 0) {
-            return res.status(400).json({ message: "Request reservation registration already done" });
+            return res.status(409).json({ message: "Request reservation registration already done" });
         }
 
         const newRequestReservation = await prisma.requestReservation.create({
@@ -64,14 +64,13 @@ export const requestReservation = async (req: Request, res: Response) => {
             }
         });
 
-        res.status(200).json({ message: "Reservation requested", newRequestReservation });
+        res.status(201).json({ message: "Reservation requested", newRequestReservation });
     } catch (error) {
         //Retornando erro caso haja
         console.error("Error retrieving vaccination: ", error);
         return res.status(500).json({ error: "Internal Server Error" });
     }
 }
-
 
 //Método para listar todas as solicitações
 export const listReservations = async (req: Request, res: Response) => {
@@ -89,7 +88,7 @@ export const listReservations = async (req: Request, res: Response) => {
             }
         });
         if (!searchUser) {
-            return res.status(400).json({ error: "User not found" });
+            return res.status(404).json({ error: "User not found" });
         }
 
         res.status(200).json(searchUser.requestReservation);
@@ -123,7 +122,7 @@ export const removeReservation = async (req: Request, res: Response) => {
             }
         });
         if (!searchUser) {
-            return res.status(400).json({ error: "User not found" });
+            return res.status(404).json({ error: "User not found" });
         }
 
         //Validando a existência de uma solicitação de reserva com esse id
@@ -133,7 +132,7 @@ export const removeReservation = async (req: Request, res: Response) => {
             }
         });
         if (!searchReservation) {
-            return res.status(400).json({ error: "Request reservation not found" });
+            return res.status(404).json({ error: "Request reservation not found" });
         }
 
         //Removendo a solicitação de reserva da entidade RequestReservation
@@ -191,7 +190,7 @@ export const updateReservation = async (req: Request, res: Response) => {
             }
         });
         if (!searchUser) {
-            return res.status(400).json({ error: "User not found" });
+            return res.status(404).json({ error: "User not found" });
         }
 
         //Validar a existência do evento no calendário
@@ -204,7 +203,7 @@ export const updateReservation = async (req: Request, res: Response) => {
             }
         });
         if (!searchEvent) {
-            return res.status(400).json({ error: "Event not found" });
+            return res.status(404).json({ error: "Event not found" });
         }
 
         //Validar a date
@@ -219,7 +218,7 @@ export const updateReservation = async (req: Request, res: Response) => {
             },
         });
         if (!searchReservation) {
-            return res.status(400).json({ error: "Request reservation not found" });
+            return res.status(404).json({ error: "Request reservation not found" });
         }
 
         //Validar que não existe uma requisição do com a date e id do calendario
@@ -232,7 +231,7 @@ export const updateReservation = async (req: Request, res: Response) => {
             },
         });
         if (isDuplicate > 0) {
-            return res.status(400).json({ message: "Request reservation registration already done" });
+            return res.status(409).json({ message: "Request reservation registration already done" });
         }
 
         //Atualizando o registro de vacinação

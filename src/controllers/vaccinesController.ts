@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { prisma } from "../prismaClient/prismaClient";
 import { v4 as uuidv4, validate } from "uuid";
+import { ZodError } from "zod";
+import { vaccineSchema } from "../utils/validateVaccine";
 
 //Método para listar as vacinas
 export const findAllVaccines = async (req: Request, res: Response) => {
@@ -17,11 +19,7 @@ export const findAllVaccines = async (req: Request, res: Response) => {
 
 export const createVaccines = async (req: Request, res: Response) => {
   try {
-    const { name, type, manufacturer, description, contraIndication } =
-      req.body;
-    if (!name || !type || !manufacturer || !description || !contraIndication) {
-      return res.status(400).json({ error: "All fields must be filled out" });
-    }
+    const { name, type, manufacturer, description, contraIndication } = vaccineSchema.parse(req.body);
 
     //Verificando se a vacina já existe no banco de dados
     const existVaccine = await prisma.vaccine.findUnique({
@@ -31,7 +29,7 @@ export const createVaccines = async (req: Request, res: Response) => {
     });
 
     if (existVaccine) {
-      return res.status(400).json({ error: "The vaccine already exists" });
+      return res.status(404).json({ error: "The vaccine already exists" });
     }
 
     //Construindo o objeto vacina
@@ -47,10 +45,19 @@ export const createVaccines = async (req: Request, res: Response) => {
     });
 
     //Retornando a Vacina criada
-    res.status(200).json(newVaccine);
+    res.status(201).json(newVaccine);
   } catch (error) {
-    console.error("Error when registering vaccine", error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    if (error instanceof ZodError) {
+      const errorDetails = error.errors.map(err => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }));
+
+      return res.status(400).json({ error: 'Validation failed', details: errorDetails });
+    } else {
+      console.error('Error when registering vaccine', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
   }
 };
 
@@ -64,22 +71,17 @@ export const editVaccine = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid id" });
     }
 
-    const { name, type, manufacturer, description, contraIndication } = req.body;
+    const { name, type, manufacturer, description, contraIndication } = vaccineSchema.parse(req.body);
 
     // Verificando de uma vacina já existe
     if (!(await prisma.vaccine.findUnique({ where: { id: vaccineId } }))) {
-      return res.status(400).json({ error: "Not existing vaccine" });
-    }
-
-    // Validando todos os atributos
-    if (!name || !type || !manufacturer || !description || !contraIndication) {
-      return res.status(400).json({ error: "All fields must be filled out" });
+      return res.status(404).json({ error: "Not existing vaccine" });
     }
 
     //Verificando se não já existe uma vacina com o nome que deseja ser atualizado
-    const vaccineName = await prisma.vaccine.findUnique({ where: { name: name} });
-    if(vaccineName){
-      return res.status(400).json({ error: "There is already a registered vaccine with this name "});
+    const vaccineName = await prisma.vaccine.count({ where: { name: name, id: { not: vaccineId}} });
+    if(vaccineName > 0){
+      return res.status(409).json({ error: "There is already a registered vaccine with this name "});
     }
 
     // Update dos atributos
@@ -98,8 +100,17 @@ export const editVaccine = async (req: Request, res: Response) => {
 
     return res.status(200).json({ message: "Updated Vaccine", updateVaccine });
   } catch (error) {
-    console.error("Error when registering vaccine", error);
-    return res.status(500).json({ error: "Internal Server Error" });
+    if (error instanceof ZodError) {
+      const errorDetails = error.errors.map(err => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }));
+
+      return res.status(400).json({ error: 'Validation failed', details: errorDetails });
+    } else {
+      console.error('Error when registering vaccine', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
   }
 };
 
@@ -115,7 +126,7 @@ export const removeVaccine = async (req: Request, res: Response) => {
 
     // Verificando se a vacina existe
     if (!(await prisma.vaccine.findUnique({ where: { id: vaccineId } }))) {
-      return res.status(400).json({ error: "Not existing vaccine" });
+      return res.status(404).json({ error: "Not existing vaccine" });
     } else {
       await prisma.vaccine.delete({
         where: {
@@ -155,7 +166,7 @@ export const findVaccineById = async (req: Request, res: Response) => {
       }
     });
     if (!vaccine) {
-      return res.status(400).json({ message: "vaccine not found" });
+      return res.status(404).json({ message: "vaccine not found" });
     }
 
     return res.status(200).json(vaccine);

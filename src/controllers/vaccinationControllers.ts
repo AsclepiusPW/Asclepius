@@ -22,7 +22,7 @@ export const registerVaccination = async (req: Request, res: Response) => {
             }
         });
         if (!searchUser) {
-            return res.status(400).json({ error: "User not found" });
+            return res.status(404).json({ error: "User not found" });
         }
 
         //Validação da vacina
@@ -35,7 +35,7 @@ export const registerVaccination = async (req: Request, res: Response) => {
             }
         });
         if (!searchVaccine) {
-            return res.status(400).json({ error: "Vaccine not found" });
+            return res.status(404).json({ error: "Vaccine not found" });
         }
 
         //Validação de date
@@ -56,7 +56,7 @@ export const registerVaccination = async (req: Request, res: Response) => {
 
         const verifyVaccineDate = await searchUser.vaccination.some((resgiter) => isSameDay(new Date(resgiter.date), parseISO(date)));
         if (verifyVaccineId >= 1 && verifyVaccineDate) { //Validação dupla
-            return res.status(400).json({ message: "Vaccination registration already done" });
+            return res.status(409).json({ message: "Vaccination registration already done" });
         }
 
         //Criando objeto
@@ -71,7 +71,7 @@ export const registerVaccination = async (req: Request, res: Response) => {
         });
 
         //Retornando resultado
-        res.status(200).json({ message: "Registered vaccination", newRegisterVaccination });
+        res.status(201).json({ message: "Registered vaccination", newRegisterVaccination });
 
     } catch (error) {
         //Retornando erro caso haja
@@ -96,7 +96,7 @@ export const listVaccination = async (req: Request, res: Response) => {
             }
         });
         if (!searchUser) {
-            return res.status(400).json({ error: "User not found" });
+            return res.status(404).json({ error: "User not found" });
         }
 
         res.status(200).json(searchUser.vaccination);
@@ -131,7 +131,7 @@ export const removeVaccination = async (req: Request, res: Response) => {
             }
         });
         if (!searchUser) {
-            return res.status(400).json({ error: "User not found" });
+            return res.status(404).json({ error: "User not found" });
         }
 
         //Validação de registro de vacinação
@@ -141,7 +141,7 @@ export const removeVaccination = async (req: Request, res: Response) => {
             }
         });
         if (!searchVaccination) {
-            return res.status(400).json({ error: "Vaccination not found" });
+            return res.status(404).json({ error: "Vaccination not found" });
         }
 
         //Removendo o registro de vacinção da entidade Vaccination
@@ -191,7 +191,7 @@ export const updateVaccination = async (req: Request, res: Response) => {
             }
         });
         if (!searchUser) {
-            return res.status(400).json({ error: "User not found" });
+            return res.status(404).json({ error: "User not found" });
         }
 
         //Validação da vacina
@@ -204,7 +204,7 @@ export const updateVaccination = async (req: Request, res: Response) => {
             }
         });
         if (!searchVaccine) {
-            return res.status(400).json({ error: "Vaccine not found" });
+            return res.status(404).json({ error: "Vaccine not found" });
         }
 
         //Validação de date
@@ -224,7 +224,7 @@ export const updateVaccination = async (req: Request, res: Response) => {
             }
         });
         if (!searchVaccination) {
-            return res.status(400).json({ error: "Vaccination not found" });
+            return res.status(404).json({ error: "Vaccination not found" });
         }
        
         //Validar que não existe informação repedida
@@ -237,7 +237,7 @@ export const updateVaccination = async (req: Request, res: Response) => {
             },
         });
         if (isDuplicate > 0) {
-            return res.status(400).json({ message: "Vaccination registration already done" });
+            return res.status(409).json({ message: "Vaccination registration already done" });
         }
 
         // Atualizar o registro de vacinação
