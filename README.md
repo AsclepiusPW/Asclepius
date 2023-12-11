@@ -59,6 +59,7 @@ Por fim, as entidades de relacionamento, a *RequestReservation e Vaccination*, d
 │ ├── middleware/
 | │   | ├── verifyToken.ts
 | │   | ├── verifyImageUser.ts
+| │   | ├── verifyTokenAdmin.ts
 │ ├── prismaClient/
 | │   | ├── prismaClient.ts
 │ ├── routes/
@@ -128,19 +129,34 @@ O Asclepius apresenta-se como uma API altamente configurável, uma vez que cada 
 ```bash
 git clone https://github.com/AsclepiusPW/Asclepius.git
 ```
-2. Instale as dependências:
+2. Navegue até o diretório do projeto:
+```bash
+cd Asclepius
+```
+
+3. Instale as dependências:
 ```bash
 npm install
 #ou
 yarn
 ```
-3. Configure o banco de dados SQLite, (ou qualquer outro que preferir) e adicione um arquivo **.env** à raiz do diretório:
+4. Configure o banco de dados SQLite, (ou qualquer outro que preferir) e adicione um arquivo **.env** à raiz do diretório:
 ```bash
 DATABASE_URL="yourFile:./dev.db"
 DATABASE_URL="yourFile:./test.db" #(Banco para testes)
-SECRET= yourSecretKey #(Key usado para criar e validar um token)
+SECRET= yourSecretKey #(Key usado para criar e validar um token usuário)
+SECRET= yourSecretKeyAdmin #(Key usado para criar e validar token de Administrador)
 ```
-4. Execute o servidor:
+5. Instancie o Banco de Dados:
+```bash
+npx prisma db push
+```
+Ou se você não tem Prisma CLI instalado globalmente:
+
+```bash
+npx prisma migrate dev
+```
+6. Execute o servidor:
 ```bash
 npm run dev
 ```
