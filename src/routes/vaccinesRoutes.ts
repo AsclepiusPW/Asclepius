@@ -3,13 +3,13 @@ const vaccinesRoutes = express.Router();
 
 //Conjunto de requisições do usuário:
 import { findAllVaccines, createVaccines, editVaccine, removeVaccine, findVaccineById} from "../controllers/vaccinesController";
-import { verifyToken } from "../middleware/verifyToken";
+import { verifyTokenAdmin } from "../middleware/verifyTokenAdmin";
 
 //Rotas
 vaccinesRoutes.get("/", findAllVaccines);
-vaccinesRoutes.post("/", verifyToken ,createVaccines);
-vaccinesRoutes.get("/:id", verifyToken, findVaccineById);
-vaccinesRoutes.patch("/update/:id", verifyToken, editVaccine);
-vaccinesRoutes.delete("/remove/:id", verifyToken, removeVaccine);
+vaccinesRoutes.post("/", verifyTokenAdmin ,createVaccines);
+vaccinesRoutes.get("/:id", verifyTokenAdmin, findVaccineById);
+vaccinesRoutes.patch("/update/:id", verifyTokenAdmin, editVaccine);
+vaccinesRoutes.delete("/remove/:id", verifyTokenAdmin, removeVaccine);
 
 export { vaccinesRoutes };

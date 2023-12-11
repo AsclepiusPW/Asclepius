@@ -174,6 +174,65 @@ export const authenticateUser = async (req: Request, res: Response) => {
   }
 };
 
+//Requisção para criar um token para o Administrador
+export const authenticateAdmin = async (req: Request, res: Response) => {
+  try {
+    const { name, password, confirmPassword, email } = authenticationSchema.parse(req.body);
+
+    if (confirmPassword !== password) {
+      return res.status(400).json({ error: "Check your password" });
+    }
+
+    //Validando que o usuário realmente existe (Busca pelo o e-mail)
+    const existUser = await prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
+
+    if (!existUser) {
+      return res.status(404).json({ error: "User does not exist" });
+    } else {
+      //Coferindo a senha passada com a senha salva no banco
+      const checkPassword = await bcryptjs.compare(password, existUser?.password);
+
+      //Conferido o usuário que passou a senha (True se verdadeiro e False se falso)
+      const compareName = existUser?.name === name;
+
+      if (!checkPassword || !compareName) {
+        return res.status(400).json({ error: "Invalid password or user" });
+      } else {
+        const secret = process.env.SECRET_ADMIN;
+        //Método para confirmar que realmente o segredo do JWT existe
+        if (!secret) {
+          throw new Error("JWT secret is not defined");
+        }
+
+        const token = sign({ name: existUser.name }, secret, {
+          expiresIn: "30d",
+          subject: existUser.id,
+        });
+
+        res.status(200).json({ message: "Authentication successful", token });
+      }
+    }
+  } catch (error) {
+    //Retornando erro caso haja
+    if (error instanceof ZodError) {
+      const errorDetails = error.errors.map(err => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }));
+
+      return res.status(400).json({ error: 'Validation failed', details: errorDetails });
+    } else {
+      // Retornar erro interno do servidor
+      console.error("Error retrieving users: ", error);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+};
+
 //Método de atualização do usuário (Possível método para atualizar)
 export const editUser = async (req: Request, res: Response) => {
   try {
