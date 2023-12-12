@@ -3,7 +3,7 @@ import { prisma } from "../prismaClient/prismaClient";
 import { v4 as uuidv4, validate } from "uuid";
 import { parseISO, isValid } from "date-fns";
 
-//Relação entre usuário e calendário de vacinação
+//Relação entre usuário e calendário de vacinação (Realizado por USUÁRIO)
 export const requestReservation = async (req: Request, res: Response) => {
     try {
         //Pegando o id do usuário da requisição
@@ -72,7 +72,7 @@ export const requestReservation = async (req: Request, res: Response) => {
     }
 }
 
-//Método para listar todas as solicitações
+//Método para listar todas as solicitações (Realizado por USUÁRIO)
 export const listReservations = async (req: Request, res: Response) => {
     try {
         //Pegando o id do usuário do tokne passado no headers da requisição
@@ -99,7 +99,7 @@ export const listReservations = async (req: Request, res: Response) => {
     }
 }
 
-//Método de remover uma solicitação
+//Método de remover uma solicitação (Realizado por USUÁRIO)
 export const removeReservation = async (req: Request, res: Response) => {
     try {
         //Pegando o id do usuário do tokne passado no headers da requisição
@@ -137,27 +137,27 @@ export const removeReservation = async (req: Request, res: Response) => {
 
         //Removendo a solicitação de reserva da entidade RequestReservation
         await prisma.requestReservation.delete({
-            where:{
+            where: {
                 id: idReservationRemove,
             }
         });
 
         //Atualizando o array do solicitações do usuário
         const updateRemoveReservation = await prisma.user.update({
-            where:{
+            where: {
                 id: userId,
             },
-            data:{
+            data: {
                 requestReservation: {
                     disconnect: [{ id: idReservationRemove }]
                 },
             },
-            include:{
+            include: {
                 requestReservation: true,
             }
         });
 
-        res.status(200).json({ message: "Reservation request removed", updateRemoveReservation});
+        res.status(200).json({ message: "Reservation request removed", updateRemoveReservation });
     } catch (error) {
         //Retornando erro caso haja
         console.error("Error retrieving vaccination: ", error);
@@ -165,13 +165,13 @@ export const removeReservation = async (req: Request, res: Response) => {
     }
 }
 
-//Método para atualizar uma solicitação
+//Método para atualizar uma solicitação (Realizado por USUÁRIO)
 export const updateReservation = async (req: Request, res: Response) => {
     try {
         //Pegando o id do usuário da requisição
         const userId = req.id_User;
         //Pegando as credenciais do body
-        const { date, idCalendar, status } = req.body;
+        const { date, idCalendar } = req.body;
         //Pegando o id da  reservation
         const idReservation = req.params.id;
 
@@ -213,7 +213,7 @@ export const updateReservation = async (req: Request, res: Response) => {
 
         //Validando que realmente existe a solicitação de reserva
         const searchReservation = await prisma.requestReservation.findUnique({
-            where:{
+            where: {
                 id: idReservation,
             },
         });
@@ -236,11 +236,10 @@ export const updateReservation = async (req: Request, res: Response) => {
 
         //Atualizando o registro de vacinação
         await prisma.requestReservation.update({
-            where: {id: idReservation},
+            where: { id: idReservation },
             data: {
                 date: date,
                 idCalendar: idCalendar,
-                status: status,
             }
         });
 
@@ -255,21 +254,84 @@ export const updateReservation = async (req: Request, res: Response) => {
                             data: {
                                 date: parseISO(date),
                                 idCalendar: idCalendar,
-                                status: status
                             },
                         },
                     ],
                 },
             },
-            include : {
+            include: {
                 requestReservation: true,
             }
-        }); 
+        });
 
-        res.status(200).json({ message: "Registered reservation request", updatedUser});
+        res.status(200).json({ message: "Registered reservation request", updatedUser });
     } catch (error) {
         //Retornando erro caso haja
         console.error("Error retrieving vaccination: ", error);
         return res.status(500).json({ error: "Internal Server Error" });
     }
 };
+
+//Método para atualizar status de uma solicitação de evento (Realizado por ADMIN)
+export const updateStatusReservation = async (req: Request, res: Response) => {
+    try {
+        const registerId = req.params.id;
+        const { status } = req.body;
+
+        //Verificando se o id passado é válido
+        if (!validate(registerId)) {
+            return res.status(400).json({ error: "Invalid id" });
+        }
+
+        //Validação de registro de solicitação
+        const searchReservation = await prisma.requestReservation.findUnique({
+            where: {
+                id: registerId
+            }
+        });
+        if (!searchReservation) {
+            return res.status(404).json({ error: "Vaccination not found" });
+        }
+
+        const userId = searchReservation.idUser as string;
+
+        //Verificando se o id passado é válido
+        if (!validate(userId)) {
+            return res.status(400).json({ error: "Invalid User id" });
+        }
+
+        //Atualizando o registro de vacinação
+        await prisma.requestReservation.update({
+            where: { id: registerId },
+            data: {
+                status: status
+            }
+        });
+
+        //Atualizando o array de requesteReservation do usuário
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+              requestReservation: {
+                update: [
+                  {
+                    where: { id: registerId },
+                    data: {
+                      status: status,
+                    },
+                  },
+                ],
+              },
+            },
+            include: {
+              requestReservation: true,
+            },
+          });
+
+        res.status(200).json({ message: "Update reservation request", updatedUser });
+    } catch (error) {
+        //Retornando erro caso haja
+        console.error("Error retrieving vaccination: ", error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+}
