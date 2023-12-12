@@ -4,11 +4,11 @@ import { v4 as uuidv4, validate } from "uuid";
 import { parseISO, isValid, isSameDay } from "date-fns";
 
 //Relação entre usuário e vacina
-//Método para criar um registro de vacinação
+//Método para criar um registro de vacinação (Realizado por ADMIN)
 export const registerVaccination = async (req: Request, res: Response) => {
     try {
-        //Pegando o id do usuário através do token passado pela a requisição
-        const userId = req.id_User;
+        //Pegando o id do usuário através da URL passado pela a requisição
+        const userId = req.params.id;
         //Pegando as credenciais do registro de vacinação
         const { date, applied, vaccine } = req.body;
 
@@ -80,7 +80,7 @@ export const registerVaccination = async (req: Request, res: Response) => {
     }
 };
 
-//Método para imprimir todas os resistros de vacinação do usuário
+//Método para imprimir todas os resistros de vacinação do usuário (Realizado por USUÁRIO)
 export const listVaccination = async (req: Request, res: Response) => {
     try {
         //Capturando o id do usuário atraves do token passado pela requisição
@@ -107,11 +107,9 @@ export const listVaccination = async (req: Request, res: Response) => {
     }
 };
 
-//Método para remover um registro 
+//Método para remover um registro (Realizado por ADMIN)
 export const removeVaccination = async (req: Request, res: Response) => {
     try {
-        //Pegando o id do usuário através do token passado pela a requisição
-        const userId = req.id_User;
 
         //Pegando o id do registro de vacinação
         const vaccinationId = req.params.id;
@@ -119,6 +117,24 @@ export const removeVaccination = async (req: Request, res: Response) => {
         //Verificando se o id passado é válido
         if (!validate(vaccinationId)) {
             return res.status(400).json({ error: "Invalid id" });
+        }
+
+        //Validação de registro de vacinação
+        const searchVaccination = await prisma.vaccination.findUnique({
+            where: {
+                id: vaccinationId
+            }
+        });
+        if (!searchVaccination) {
+            return res.status(404).json({ error: "Vaccination not found" });
+
+        }
+        //Pegando o id do usuário através do registro de vacinação
+        const userId = searchVaccination.idUser as string;
+
+        //Verificando se o id passado é válido
+        if (!validate(userId)) {
+            return res.status(400).json({ error: "Invalid User id" });
         }
 
         //Validando a existência do usuário e anexando a propriedade Vaccination
@@ -132,16 +148,6 @@ export const removeVaccination = async (req: Request, res: Response) => {
         });
         if (!searchUser) {
             return res.status(404).json({ error: "User not found" });
-        }
-
-        //Validação de registro de vacinação
-        const searchVaccination = await prisma.vaccination.findUnique({
-            where: {
-                id: vaccinationId
-            }
-        });
-        if (!searchVaccination) {
-            return res.status(404).json({ error: "Vaccination not found" });
         }
 
         //Removendo o registro de vacinção da entidade Vaccination
@@ -174,12 +180,33 @@ export const removeVaccination = async (req: Request, res: Response) => {
     }
 };
 
-//Método de atualização de um registro de vacinação
+//Método de atualização de um registro de vacinação (Realizado por ADMIN)
 export const updateVaccination = async (req: Request, res: Response) => {
     try {
-        const userId = req.id_User;
         const vaccinationId = req.params.id;
         const { date, applied, vaccine } = req.body;
+
+        //Verificando se o id passado é válido
+        if (!validate(vaccinationId)) {
+            return res.status(400).json({ error: "Invalid id" });
+        }
+
+        //Validação de registro de vacinação
+        const searchVaccination = await prisma.vaccination.findUnique({
+            where: {
+                id: vaccinationId
+            }
+        });
+        if (!searchVaccination) {
+            return res.status(404).json({ error: "Vaccination not found" });
+        }
+
+        const userId = searchVaccination.idUser as string;
+
+        //Verificando se o id passado é válido
+        if (!validate(userId)) {
+            return res.status(400).json({ error: "Invalid User id" });
+        }
 
         //Validando a existência do usuário e anexando a propriedade Vaccination
         const searchUser = await prisma.user.findUnique({
@@ -212,21 +239,6 @@ export const updateVaccination = async (req: Request, res: Response) => {
             return res.status(400).json({ error: "Incorrect date entered" });
         }
 
-        //Verificando se o id passado é válido
-        if (!validate(vaccinationId)) {
-            return res.status(400).json({ error: "Invalid id" });
-        }
-
-        //Validação de registro de vacinação
-        const searchVaccination = await prisma.vaccination.findUnique({
-            where: {
-                id: vaccinationId
-            }
-        });
-        if (!searchVaccination) {
-            return res.status(404).json({ error: "Vaccination not found" });
-        }
-       
         //Validar que não existe informação repedida
         const isDuplicate = await prisma.vaccination.count({
             where: {
