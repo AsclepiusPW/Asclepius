@@ -79,49 +79,61 @@ Por fim, as entidades de relacionamento, a *RequestReservation e Vaccination*, d
 ├── test.config.ts
 ```
 
+## Níveis de acesso
+
+O **Asclepius** possui no geral três tipos de acesso motivados pelo o tipo de usuário que busca acessar o sistema, a principal diferença entre eles é a presença e diferença de token. Segue a definição:
+
+| Nível | Rotas | Definição |
+|-------------|-------------|-------------|
+| Livre | No geral rotas GET e cadastro/login de usuário. | Nível livre significa que a requisção ou rota é acessível a todos os usuário do sistema. |
+| Usuário | No geral rotas de solicitação, autenticação e listagem de dados | Nível usuário significa que o usuário está autenticado no sistema e pode realizar função com adição de solicitações e visulização de dados específicos. |
+| Administrador | No geral rotas de adição, atualização e remoção de entidades | Nível administrador significa nível de maior acesso ao sistema podendo adicionar entidades como Vacina e Calendário de Vacinação, bem como controlar o acesso dessas entidades pelo o usuário comum. |
+
 ## Funcionalidades
 
 O Asclepius apresenta-se como uma API altamente configurável, uma vez que cada entidade incorpora métodos CRUD (Create, Reload, Update e Delete). A seguir, estão detalhadas as rotas correspondentes a cada entidade, juntamente com suas respectivas especificações.
 
 ### User:
 
-1. **GET:** ("/user/"): Requesição que lista todos os usuários;
-2. **GET:** ("/user/:id"): RequestReservation para listar as informações de um único usuário;
-3. **POST:** ("/user"): Requesição para criar um usuário;
-4. **POST:** ("/user/authentication"): Requesição para autenticar um usuário;
-5. **PUT:** ("/user/update"): Requesição para editar somente informações escritas do usuário;
-6. **PATCH:** ("/user/upload"): Requesição para adicionar ou editar um foto do usuário;
-7. **DELETE:** ("/user/remove/:id"): Requesição para remover um usuário. 
+1. **GET:** ("/user/"): Requesição que lista todos os usuários (NÍVEL: Administrador);
+2. **GET:** ("/user/:id"): RequestReservation para listar as informações de um único usuário(NÍVEL: Usuário);
+3. **POST:** ("/user"): Requesição para criar um usuário (NÍVEL: Livre);
+4. **POST:** ("/user/authentication"): Requesição para autenticar um usuário (NÍVEL: Livre);
+5. **POST:** ("/user/authenticationAdmin"): Requesição para autenticar um administrador (NÍVEL: Livre);
+6. **PUT:** ("/user/update"): Requesição para editar somente informações escritas do usuário (NÍVEL: Usuário);
+7. **PATCH:** ("/user/upload"): Requesição para adicionar ou editar um foto do usuário (NÍVEL: Usuário);
+8. **DELETE:** ("/user/remove/:id"): Requesição para remover um usuário (NÍVEL: Administrador). 
 
 ### Vaccines:
 
-1. **GET:** ("/vaccine/"): Requesição para listar todas as vacinas cadastradas no sistema.
-2. **GET:** ("/vaccine/:id"): Requisição para listar as informações de uma vaccina;
-3. **POST:** ("/vaccine/"): Requesição para adicionar uma nova vacina ao sistema.
-4. **PATCH:** ("/update/:id"): Requisição para editar as informações de uma vacina;
-5. **DELETE:** ("/remove/:id): Requesição para remover uma vacina.
+1. **GET:** ("/vaccine/"): Requesição para listar todas as vacinas cadastradas no sistema (NÍVEL: Livre).
+2. **GET:** ("/vaccine/:id"): Requisição para listar as informações de uma vaccina (NÍVEL: Administrador);
+3. **POST:** ("/vaccine/"): Requesição para adicionar uma nova vacina ao sistema (NÍVEL: Administrador).
+4. **PATCH:** ("/update/:id"): Requisição para editar as informações de uma vacina (NÍVEL: Administrador);
+5. **DELETE:** ("/remove/:id): Requesição para remover uma vacina (NÍVEL: Administrador).
 
 ### CalendarVaccination:
 
-1. **GET:** ("/event/"): Requesição para listar todos os eventos de calendário;
-2. **GET:** ("/event/:id"): Requesição para listar as informações de uma único evento de um calendário de vacinas;
-3. **POST:** ("/event/"): Requisição para adicionar um novo evento ao calendário de vacinação;
-4. **PUT:** ("/event/update/:id"): Requisição para editar as informações de um evento;
-5. **DELETE:** ("/event/remove/:id"): Requisição para remover um evento do calendário.
+1. **GET:** ("/event/"): Requesição para listar todos os eventos de calendário (NÍVEL: Livre);
+2. **GET:** ("/event/:id"): Requesição para listar as informações de uma único evento de um calendário de vacinas (NÍVEL: Administrador);
+3. **POST:** ("/event/"): Requisição para adicionar um novo evento ao calendário de vacinação (NÍVEL: Administrador);
+4. **PUT:** ("/event/update/:id"): Requisição para editar as informações de um evento (NÍVEL: Administrador);
+5. **DELETE:** ("/event/remove/:id"): Requisição para remover um evento do calendário (NÍVEL: Administrador).
 
 ### Vaccination
 
-1. **GET:** ("/register/"): Requesição para listar todos as vacinaçôes de um usuário;
-2. **POST:** ("/register/"): Requisição para adicionar um novo cadastro de vacinação a um usuário;
-3. **PUT:** ("/register/update/:id"): Requisição para editar as informações de uma vacinação;
-4. **DELETE:** ("/resgister/remove/:id"): Requisição para remover uma vacinação da lista de vacinações de um usuário.
+1. **GET:** ("/register/"): Requesição para listar todos as vacinaçôes de um usuário (NÍVEL: Usuário);
+2. **POST:** ("/register/"): Requisição para adicionar um novo cadastro de vacinação a um usuário (NÍVEL: Administrador);
+3. **PUT:** ("/register/update/:id"): Requisição para editar as informações de uma vacinação (NÍVEL: Administrador);
+4. **DELETE:** ("/resgister/remove/:id"): Requisição para remover uma vacinação da lista de vacinações de um usuário (NÍVEL: Administrador).
 
 ### RequestReservation
 
-1. **GET:** ("/reservation/"): Requesição para listar todos as solicitações de reserva de um usuário;
-2. **POST:** ("/reservation/"): Requisição para adicionar uma nova solicitação de reserva de um usuário;
-3. **PUT:** ("/reservation/update/:id"): Requisição para editar as informações de uma solicitação de reserva;
-4. **DELETE:** ("/reservation/remove/:id"): Requisição para remover uma solicitação de reserva da lista de solicitações de um usuário.
+1. **GET:** ("/reservation/"): Requesição para listar todos as solicitações de reserva de um usuário (NÍVEL: Usuário);
+2. **POST:** ("/reservation/"): Requisição para adicionar uma nova solicitação de reserva de um usuário (NÍVEL: Usuário);
+3. **PUT:** ("/reservation/update/:id"): Requisição para editar as informações de uma solicitação de reserva (NÍVEL: Usuário);
+4. **DELETE:** ("/reservation/remove/:id"): Requisição para remover uma solicitação de reserva da lista de solicitações de um usuário (NÍVEL: Usuário);
+5. **PATCH:** ("/reservation/update/status/:id"): Requisição para atualizar o status de um solicitação realizada pelo o usuário (NÍVEL: Administrador).
 
 ## Configurações de uso
 
