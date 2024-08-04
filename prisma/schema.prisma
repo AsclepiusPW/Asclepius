@@ -25,6 +25,9 @@ model User{
   longitude Float
   vaccination Vaccination[] 
   requestReservation RequestReservation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 //Entidade Vacina
@@ -37,12 +40,17 @@ model Vaccine{
   contraIndication String
   vaccination Vaccination[]
   vaccinationCalendar VaccinationCalendar[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 //Entidade Calendário de vacinação
 model VaccinationCalendar{
   id String @id @default(uuid()) @map("_id")
   local String
+  latitude Float
+  longitude Float
   date DateTime
   places Int
   status String?
@@ -51,6 +59,9 @@ model VaccinationCalendar{
   idVaccine String
   vaccine Vaccine @relation(fields: [idVaccine], references: [id])
   requestReservation RequestReservation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 //Relacionamentos

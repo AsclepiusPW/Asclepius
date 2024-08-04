@@ -92,7 +92,11 @@ export const listVaccination = async (req: Request, res: Response) => {
                 id: userId,
             },
             include: {
-                vaccination: true,
+                vaccination: {
+                    include: {
+                        vaccine: true,
+                    }
+                },
             }
         });
         if (!searchUser) {

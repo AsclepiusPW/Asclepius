@@ -41,6 +41,22 @@ export const findSpecificUser = async (req: Request, res: Response) => {
         telefone: true,
         latitude: true,
         longitude: true,
+        //Listando solicitações, calendário e vacina
+        requestReservation: {
+          include: {
+            calendar: {
+              include: {
+                vaccine: true,
+              }
+            },
+          }
+        },
+        //Listando vacinação e vacina
+        vaccination: {
+          include: {
+            vaccine: true,
+          }
+        },
       },
     });
     if (!userExist) {

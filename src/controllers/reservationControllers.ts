@@ -84,7 +84,15 @@ export const listReservations = async (req: Request, res: Response) => {
                 id: userId,
             },
             include: {
-                requestReservation: true,
+                requestReservation: {
+                    include: {
+                        calendar: {
+                            include: {
+                                vaccine: true // Incluindo as informações da vacina relacionada
+                            }
+                        }
+                    }
+                },
             }
         });
         if (!searchUser) {

@@ -8,7 +8,11 @@ import { vaccineSchema } from "../utils/validateVaccine";
 export const findAllVaccines = async (req: Request, res: Response) => {
   try {
     //Buscando todos as vacinas cadastradas no sistema
-    const vaccine = await prisma.vaccine.findMany();
+    const vaccine = await prisma.vaccine.findMany({
+      include:{
+        vaccinationCalendar: true,
+      }
+    });
     return res.status(200).json(vaccine);
   } catch (error) {
     //Retornando erro caso haja
@@ -163,6 +167,7 @@ export const findVaccineById = async (req: Request, res: Response) => {
         manufacturer: true,
         description: true,
         contraIndication: true,
+        vaccinationCalendar: true,
       }
     });
     if (!vaccine) {

@@ -8,4 +8,6 @@ export const calendarSchema = z.object({
     observation: z.string().optional(),
     responsible: z.string().min(1).refine(data => !!data, { message: 'The responsible is mandatory' }),
     vaccine: z.string().refine(data => !!data, { message: 'The vaccine is mandatory' }),
+    latitude: z.number().refine(data => !!data, { message: 'The latitude is mandatory' }),
+    longitude: z.number().refine(data => !!data, { message: 'The longitude is mandatory' }),
   });

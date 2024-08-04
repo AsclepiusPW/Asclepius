@@ -7,7 +7,7 @@ import { calendarSchema } from "../utils/validateCalendarVaccination";
 
 export const createCalendar = async (req: Request, res: Response) => {
     try {
-        const { local, date, places, status, observation, responsible, vaccine } = calendarSchema.parse(req.body);
+        const { local, date, places, status, observation, responsible, vaccine, latitude, longitude } = calendarSchema.parse(req.body);
         //Validando que a vacina passada de fato existe
         const searchVaccine = await prisma.vaccine.findUnique({
             where: {
@@ -27,6 +27,8 @@ export const createCalendar = async (req: Request, res: Response) => {
         const existingEvent = await prisma.vaccinationCalendar.findFirst({
             where: {
                 local: local,
+                latitude: latitude,
+                longitude: longitude,
                 date: date,
             },
         });
@@ -41,11 +43,13 @@ export const createCalendar = async (req: Request, res: Response) => {
             data: {
                 id: uuidv4(),
                 local: local,
+                latitude: latitude,
+                longitude: longitude,
                 date: date,
                 places: places,
                 responsible: responsible,
-                status: "Status not informed" || status,
-                observation: "Observation not informed" || observation,
+                status: status ?? "Status not informed",
+                observation: observation ?? "Observation not informed",
                 idVaccine: searchVaccine.id, 
             }
         });
@@ -70,7 +74,11 @@ export const createCalendar = async (req: Request, res: Response) => {
 
 export const findAllCalendars = async (req: Request, res:Response) => {
     try {
-        const calendars = await prisma.vaccinationCalendar.findMany();
+        const calendars = await prisma.vaccinationCalendar.findMany({
+            include:{
+                vaccine: true,
+            }
+        });
         return res.status(200).json(calendars);
     } catch (error) {
         //Caso haja erro:
@@ -101,7 +109,10 @@ export const findSpecificCalendar = async (req: Request, res: Response) =>{
                 responsible: true,
                 observation: true,
                 status: true,
-                idVaccine: true
+                idVaccine: true,
+                latitude: true,
+                longitude: true,
+                vaccine: true,
             }
         });
 
