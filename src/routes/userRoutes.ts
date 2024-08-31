@@ -20,7 +20,7 @@ userRoutes.post("/authentication", authenticateUser);
 userRoutes.post("/authenticationAdmin", authenticateAdmin);
 userRoutes.get("/", verifyTokenAdmin, findAllUsers);
 userRoutes.put("/update", verifyToken, editUser);
-userRoutes.get("/:id", verifyToken, findSpecificUser);
+userRoutes.get("/profile", verifyToken, findSpecificUser);
 userRoutes.delete("/remove/:id", verifyTokenAdmin, removeUsers); //Quando deletar um usuário deve deletar a sua imagem  
 userRoutes.patch("/upload", verifyToken, verifyImageUser, upload.single("image"), uploadImage); //Método de criar e editar a foto do usuário
 
