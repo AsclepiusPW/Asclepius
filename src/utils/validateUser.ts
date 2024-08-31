@@ -9,7 +9,6 @@ const validateTelefone = (telefone: string) => {
 export const userSchema = z.object({
     name: z.string().min(3).max(255).refine(data => !!data, { message: 'The name is mandatory' }),
     password: z.string().min(6).refine(data => !!data, { message: 'The password is mandatory' }),
-    confirmPassword: z.string(),
     email: z.string()
         .email({ message: 'Invalid email address' })
         .refine(data => !!data, { message: 'The email is mandatory' }),
@@ -20,7 +19,16 @@ export const userSchema = z.object({
     longitude: z.number().refine(data => !!data, { message: 'The longitude is mandatory' }),
 });
 
+//Validação de usuario
 export const authenticationSchema = z.object({
+    password: z.string().min(6).refine(data => !!data, { message: 'The password is mandatory' }),
+    email: z.string()
+        .email({ message: 'Invalid email address' })
+        .refine(data => !!data, { message: 'The email is mandatory' }),
+});
+
+//Validação de administrador
+export const authenticationSchemaAdmin = z.object({
     name: z.string().min(3).max(255).refine(data => !!data, { message: 'The name is mandatory' }),
     password: z.string().min(6).refine(data => !!data, { message: 'The password is mandatory' }),
     confirmPassword: z.string(),
