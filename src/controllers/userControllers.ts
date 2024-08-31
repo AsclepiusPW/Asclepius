@@ -4,7 +4,7 @@ import { v4 as uuidv4, validate } from "uuid";
 import bcryptjs from "bcryptjs";
 import { sign } from "jsonwebtoken";
 import { z, ZodError } from 'zod';
-import { userSchema, authenticationSchema } from "../utils/validateUser";
+import { userSchema, authenticationSchema, authenticationSchemaAdmin } from "../utils/validateUser";
 
 export const findAllUsers = async (req: Request, res: Response) => {
   try {
@@ -21,12 +21,7 @@ export const findAllUsers = async (req: Request, res: Response) => {
 //Requisição para pegar as informações de um usuário específico
 export const findSpecificUser = async (req: Request, res: Response) => {
   try {
-    const userId = req.params.id;
-
-    //Verificando se o id passado é válido
-    if (!validate(userId)) {
-      return res.status(400).json({ error: "Invalid id" });
-    }
+    const userId = req.id_User;
 
     //Validando que de fato o usuário exista
     const userExist = await prisma.user.findUnique({
@@ -72,11 +67,7 @@ export const findSpecificUser = async (req: Request, res: Response) => {
 
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const { name, password, confirmPassword, email, telefone, latitude, longitude } = userSchema.parse(req.body);
-    
-    if (confirmPassword !== password) {
-      return res.status(400).json({ error: "Check your password" });
-    }
+    const { name, password, email, telefone, latitude, longitude } = userSchema.parse(req.body);
 
     //Verificando se já não existe um usuário com o email cadastrado:
     const existUser = await prisma.user.findUnique({
@@ -91,8 +82,14 @@ export const createUser = async (req: Request, res: Response) => {
       },
     });
 
-    if (existUser || existUserWithTelefone) {
-      return res.status(409).json({ error: "Existing user with this e-mail or with this telefone" });
+    //Adicionando validação de existência de e-mail
+    if (existUser) {
+      return res.status(409).json({ error: "Existing user with this e-mail" });
+    }
+
+    //Adicionando validação de existência de telefone
+    if (existUserWithTelefone) {
+      return res.status(409).json({ error: "Existing user with this telefone" });
     } else {
       //Criptografando a senha do usuário:
       const salt = await bcryptjs.genSalt(15);
@@ -123,7 +120,7 @@ export const createUser = async (req: Request, res: Response) => {
         message: err.message,
       }));
   
-      return res.status(400).json({ error: 'Validation failed', details: errorDetails });
+      return res.status(400).json({ error: 'Validation failed', errors: errorDetails });
     } else {
       console.error('Error retrieving users: ', error);
       return res.status(500).json({ error: 'Internal Server Error' });
@@ -134,11 +131,7 @@ export const createUser = async (req: Request, res: Response) => {
 //Requisção para criar um token para o usuário
 export const authenticateUser = async (req: Request, res: Response) => {
   try {
-    const { name, password, confirmPassword, email } = authenticationSchema.parse(req.body);
-
-    if (confirmPassword !== password) {
-      return res.status(400).json({ error: "Check your password" });
-    }
+    const { email, password } = authenticationSchema.parse(req.body);
 
     //Validando que o usuário realmente existe (Busca pelo o e-mail)
     const existUser = await prisma.user.findUnique({
@@ -153,11 +146,8 @@ export const authenticateUser = async (req: Request, res: Response) => {
       //Coferindo a senha passada com a senha salva no banco
       const checkPassword = await bcryptjs.compare(password, existUser?.password);
 
-      //Conferido o usuário que passou a senha (True se verdadeiro e False se falso)
-      const compareName = existUser?.name === name;
-
-      if (!checkPassword || !compareName) {
-        return res.status(400).json({ error: "Invalid password or user" });
+      if (!checkPassword) {
+        return res.status(400).json({ error: "Invalid password" });
       } else {
         const secret = process.env.SECRET;
         //Método para confirmar que realmente o segredo do JWT existe
@@ -170,7 +160,7 @@ export const authenticateUser = async (req: Request, res: Response) => {
           subject: existUser.id,
         });
 
-        res.status(200).json({ message: "Authentication successful", token });
+        res.status(200).json({ message: "Authentication successful", token, user: existUser });
       }
     }
   } catch (error) {
@@ -193,7 +183,7 @@ export const authenticateUser = async (req: Request, res: Response) => {
 //Requisção para criar um token para o Administrador
 export const authenticateAdmin = async (req: Request, res: Response) => {
   try {
-    const { name, password, confirmPassword, email } = authenticationSchema.parse(req.body);
+    const { name, password, confirmPassword, email } = authenticationSchemaAdmin.parse(req.body);
 
     if (confirmPassword !== password) {
       return res.status(400).json({ error: "Check your password" });
@@ -254,7 +244,7 @@ export const editUser = async (req: Request, res: Response) => {
   try {
     const idUser = req.id_User; //Id vem do token
     const userData = userSchema.parse(req.body);
-    const { name, password, confirmPassword, email, telefone, latitude, longitude } = userData;
+    const { name, password, email, telefone, latitude, longitude } = userData;
 
     //Procurando o usuário pelo o id
     const existUserWithId = await prisma.user.findUnique({
@@ -266,10 +256,6 @@ export const editUser = async (req: Request, res: Response) => {
     //Confirmando que o usuário existe
     if (!existUserWithId) {
       return res.status(404).json({ error: "Not existing user" });
-    }
-
-    if (confirmPassword !== password) {
-      return res.status(400).json({ error: "Check your password" });
     }
 
     //Criptografando a senha do usuário:
