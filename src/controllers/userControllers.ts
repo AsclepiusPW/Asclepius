@@ -36,6 +36,7 @@ export const findSpecificUser = async (req: Request, res: Response) => {
         telefone: true,
         latitude: true,
         longitude: true,
+        password: true,
         //Listando solicitações, calendário e vacina
         requestReservation: {
           include: {
@@ -263,15 +264,23 @@ export const editUser = async (req: Request, res: Response) => {
     const hashPassword = await bcryptjs.hash(password, salt);
 
     //Validando email e telefone
-    const userUpdate = await prisma.user.count({
+    const userUpdateEmail = await prisma.user.findFirst({
       where:{
         email: email,
-        password: password,
         id: { not: idUser}
       }
     });
-    if (userUpdate > 0) {
-      return res.status(409).json({ error: "E-mail or phone is already being used by another user" });
+
+    const userUpdatePhone = await prisma.user.findFirst({
+      where: {
+        telefone: telefone,
+        id: {not: idUser}
+      }
+    })
+    if (userUpdateEmail) {
+      return res.status(409).json({ error: "E-mail is already being used by another user" });
+    }else if (userUpdatePhone) {
+      return res.status(409).json({ error: "Phone is already being used by another user" });
     }
 
     const updateUser = await prisma.user.update({
