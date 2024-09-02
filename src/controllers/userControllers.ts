@@ -4,7 +4,8 @@ import { v4 as uuidv4, validate } from "uuid";
 import bcryptjs from "bcryptjs";
 import { sign } from "jsonwebtoken";
 import { z, ZodError } from 'zod';
-import { userSchema, authenticationSchema, authenticationSchemaAdmin } from "../utils/validateUser";
+import { userSchema, authenticationSchema, authenticationSchemaAdmin, userUpdateSchema, userResetPasswordSchema } from "../utils/validateUser";
+import path from "path";
 
 export const findAllUsers = async (req: Request, res: Response) => {
   try {
@@ -58,6 +59,7 @@ export const findSpecificUser = async (req: Request, res: Response) => {
     if (!userExist) {
       return res.status(404).json({ error: "User not found" });
     }
+
     res.status(200).json(userExist);
   } catch (error) {
     //Retornando erro caso haja
@@ -120,7 +122,7 @@ export const createUser = async (req: Request, res: Response) => {
         field: err.path.join('.'),
         message: err.message,
       }));
-  
+
       return res.status(400).json({ error: 'Validation failed', errors: errorDetails });
     } else {
       console.error('Error retrieving users: ', error);
@@ -244,8 +246,8 @@ export const authenticateAdmin = async (req: Request, res: Response) => {
 export const editUser = async (req: Request, res: Response) => {
   try {
     const idUser = req.id_User; //Id vem do token
-    const userData = userSchema.parse(req.body);
-    const { name, password, email, telefone, latitude, longitude } = userData;
+    const userData = userUpdateSchema.parse(req.body);
+    const { name, email, telefone, latitude, longitude } = userData;
 
     //Procurando o usuário pelo o id
     const existUserWithId = await prisma.user.findUnique({
@@ -259,27 +261,23 @@ export const editUser = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Not existing user" });
     }
 
-    //Criptografando a senha do usuário:
-    const salt = await bcryptjs.genSalt(15);
-    const hashPassword = await bcryptjs.hash(password, salt);
-
     //Validando email e telefone
     const userUpdateEmail = await prisma.user.findFirst({
-      where:{
+      where: {
         email: email,
-        id: { not: idUser}
+        id: { not: idUser }
       }
     });
 
     const userUpdatePhone = await prisma.user.findFirst({
       where: {
         telefone: telefone,
-        id: {not: idUser}
+        id: { not: idUser }
       }
     })
     if (userUpdateEmail) {
       return res.status(409).json({ error: "E-mail is already being used by another user" });
-    }else if (userUpdatePhone) {
+    } else if (userUpdatePhone) {
       return res.status(409).json({ error: "Phone is already being used by another user" });
     }
 
@@ -289,7 +287,6 @@ export const editUser = async (req: Request, res: Response) => {
       },
       data: {
         name: name,
-        password: hashPassword,
         email: email,
         telefone: telefone,
         latitude: latitude,
@@ -305,7 +302,7 @@ export const editUser = async (req: Request, res: Response) => {
         field: err.path.join('.'),
         message: err.message,
       }));
-  
+
       return res.status(400).json({ error: 'Validation failed', details: errorDetails });
     } else {
       console.error('Error retrieving users: ', error);
@@ -313,6 +310,54 @@ export const editUser = async (req: Request, res: Response) => {
     }
   }
 };
+
+//Método para atualizar senha do usuário
+export const editPassword = async (req: Request, res: Response) => {
+  try {
+    const userData = userResetPasswordSchema.parse(req.body);
+    const { email, password } = userData;
+
+    //Procurando o usuário pelo o email
+    const existUserWithEmail = await prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
+
+    //Confirmando que o usuário existe
+    if (!existUserWithEmail) {
+      return res.status(404).json({ error: "Not existing user" });
+    }
+    //Criptografando a senha do usuário:
+    const salt = await bcryptjs.genSalt(15);
+    const hashPassword = await bcryptjs.hash(password, salt);
+
+    const resetPassword = await prisma.user.update({
+      where: {
+        email: email,
+      },
+      data: {
+        password: hashPassword,
+      },
+    });
+    
+    return res.status(200).json({ message: "Reset Password" })
+
+  } catch (error) {
+  //Retornando erro caso haja
+  if (error instanceof ZodError) {
+    const errorDetails = error.errors.map(err => ({
+      field: err.path.join('.'),
+      message: err.message,
+    }));
+
+    return res.status(400).json({ error: 'Validation failed', details: errorDetails });
+  } else {
+    console.error('Error retrieving users: ', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+}
 
 //Requisiçõa para remover um usuário
 export const removeUsers = async (req: Request, res: Response) => {
@@ -365,6 +410,7 @@ export const uploadImage = async (req: Request, res: Response) => {
     if (!existUser) {
       return res.status(404).json({ error: "User does not exist" });
     } else {
+
       //Atualizando o usuário com a imagem
       await prisma.user.update({
         where: {
@@ -375,7 +421,7 @@ export const uploadImage = async (req: Request, res: Response) => {
         },
       });
 
-      res.status(201).json({ massage: "Imagem adicionada" });
+      res.status(201).json({ massage: "Imagem adicionada", image: requestImage.filename });
     }
   } catch (error) {
     //Retornando erro caso haja
