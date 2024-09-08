@@ -6,7 +6,7 @@ import { verifyTokenAdmin } from '../middleware/verifyTokenAdmin';
 
 eventRoutes.get("/", findAllCalendars);
 eventRoutes.post("/", verifyTokenAdmin, createCalendar);
-eventRoutes.get("/:id", verifyTokenAdmin, findSpecificCalendar);
+eventRoutes.get("/:id", findSpecificCalendar);
 eventRoutes.put("/update/:id", verifyTokenAdmin, updateEventCalendar);
 eventRoutes.delete("/remove/:id", verifyTokenAdmin, removeEvent);
 
