@@ -43,15 +43,15 @@ export const requestReservation = async (req: Request, res: Response) => {
         }
 
         //Validar que não existe uma requisição do com a date e id do calendario
-        const isDuplicate = await prisma.requestReservation.count({
+        const existingReservation = await prisma.requestReservation.findFirst({
             where: {
                 idUser: userId,
                 idCalendar: idCalendar,
-                date: parseISO(date)
             },
         });
-        if (isDuplicate > 0) {
-            return res.status(409).json({ message: "Request reservation registration already done" });
+
+        if (existingReservation) {
+            return res.status(409).json({ message: "Request reservation already exists for this user and calendar" });
         }
 
         const newRequestReservation = await prisma.requestReservation.create({
