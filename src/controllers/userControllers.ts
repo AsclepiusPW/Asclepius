@@ -183,6 +183,11 @@ export const authenticateUser = async (req: Request, res: Response) => {
   }
 };
 
+//Requisição para verificar se o token é válido (Somente retorna se for válido, se não for, nem aqui chega, para no middleware)
+export const authenticateIsValid = async (req: Request, res: Response) => {
+  res.status(200).json({ message: "Token is valid" });
+};
+
 //Requisção para criar um token para o Administrador
 export const authenticateAdmin = async (req: Request, res: Response) => {
   try {

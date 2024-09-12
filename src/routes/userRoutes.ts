@@ -3,7 +3,7 @@ import multer from 'multer';
 const userRoutes = express.Router();
 
 //Conjunto de requisições do usuário:
-import { findAllUsers, findSpecificUser, createUser, editPassword, authenticateUser, authenticateAdmin, removeUsers, editUser, uploadImage } from '../controllers/userControllers';
+import { findAllUsers, findSpecificUser, createUser, editPassword, authenticateUser, authenticateIsValid, authenticateAdmin, removeUsers, editUser, uploadImage } from '../controllers/userControllers';
 //Importando o middleware de verificação de token
 import { verifyToken } from '../middleware/verifyToken'; 
 //Importando o middleware do controle de upload de imagens
@@ -18,6 +18,7 @@ const upload = multer(uploadConfigImage);
 userRoutes.post("/", createUser);
 userRoutes.patch("/resetPassword", editPassword);
 userRoutes.post("/authentication", authenticateUser);
+userRoutes.get("/authentication/isValid", verifyToken, authenticateIsValid);
 userRoutes.post("/authenticationAdmin", authenticateAdmin);
 userRoutes.get("/", verifyTokenAdmin, findAllUsers);
 userRoutes.put("/update", verifyToken, editUser);
