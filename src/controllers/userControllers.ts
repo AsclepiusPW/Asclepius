@@ -4,7 +4,8 @@ import { v4 as uuidv4, validate } from "uuid";
 import bcryptjs from "bcryptjs";
 import { sign } from "jsonwebtoken";
 import { z, ZodError } from 'zod';
-import { userSchema, authenticationSchema } from "../utils/validateUser";
+import { userSchema, authenticationSchema, authenticationSchemaAdmin, userUpdateSchema, userResetPasswordSchema } from "../utils/validateUser";
+import path from "path";
 
 export const findAllUsers = async (req: Request, res: Response) => {
   try {
@@ -21,12 +22,7 @@ export const findAllUsers = async (req: Request, res: Response) => {
 //Requisição para pegar as informações de um usuário específico
 export const findSpecificUser = async (req: Request, res: Response) => {
   try {
-    const userId = req.params.id;
-
-    //Verificando se o id passado é válido
-    if (!validate(userId)) {
-      return res.status(400).json({ error: "Invalid id" });
-    }
+    const userId = req.id_User;
 
     //Validando que de fato o usuário exista
     const userExist = await prisma.user.findUnique({
@@ -41,6 +37,7 @@ export const findSpecificUser = async (req: Request, res: Response) => {
         telefone: true,
         latitude: true,
         longitude: true,
+        password: true,
         //Listando solicitações, calendário e vacina
         requestReservation: {
           include: {
@@ -62,6 +59,7 @@ export const findSpecificUser = async (req: Request, res: Response) => {
     if (!userExist) {
       return res.status(404).json({ error: "User not found" });
     }
+
     res.status(200).json(userExist);
   } catch (error) {
     //Retornando erro caso haja
@@ -72,11 +70,7 @@ export const findSpecificUser = async (req: Request, res: Response) => {
 
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const { name, password, confirmPassword, email, telefone, latitude, longitude } = userSchema.parse(req.body);
-    
-    if (confirmPassword !== password) {
-      return res.status(400).json({ error: "Check your password" });
-    }
+    const { name, password, email, telefone, latitude, longitude } = userSchema.parse(req.body);
 
     //Verificando se já não existe um usuário com o email cadastrado:
     const existUser = await prisma.user.findUnique({
@@ -91,8 +85,14 @@ export const createUser = async (req: Request, res: Response) => {
       },
     });
 
-    if (existUser || existUserWithTelefone) {
-      return res.status(409).json({ error: "Existing user with this e-mail or with this telefone" });
+    //Adicionando validação de existência de e-mail
+    if (existUser) {
+      return res.status(409).json({ error: "Existing user with this e-mail" });
+    }
+
+    //Adicionando validação de existência de telefone
+    if (existUserWithTelefone) {
+      return res.status(409).json({ error: "Existing user with this telefone" });
     } else {
       //Criptografando a senha do usuário:
       const salt = await bcryptjs.genSalt(15);
@@ -122,8 +122,8 @@ export const createUser = async (req: Request, res: Response) => {
         field: err.path.join('.'),
         message: err.message,
       }));
-  
-      return res.status(400).json({ error: 'Validation failed', details: errorDetails });
+
+      return res.status(400).json({ error: 'Validation failed', errors: errorDetails });
     } else {
       console.error('Error retrieving users: ', error);
       return res.status(500).json({ error: 'Internal Server Error' });
@@ -134,11 +134,7 @@ export const createUser = async (req: Request, res: Response) => {
 //Requisção para criar um token para o usuário
 export const authenticateUser = async (req: Request, res: Response) => {
   try {
-    const { name, password, confirmPassword, email } = authenticationSchema.parse(req.body);
-
-    if (confirmPassword !== password) {
-      return res.status(400).json({ error: "Check your password" });
-    }
+    const { email, password } = authenticationSchema.parse(req.body);
 
     //Validando que o usuário realmente existe (Busca pelo o e-mail)
     const existUser = await prisma.user.findUnique({
@@ -153,11 +149,8 @@ export const authenticateUser = async (req: Request, res: Response) => {
       //Coferindo a senha passada com a senha salva no banco
       const checkPassword = await bcryptjs.compare(password, existUser?.password);
 
-      //Conferido o usuário que passou a senha (True se verdadeiro e False se falso)
-      const compareName = existUser?.name === name;
-
-      if (!checkPassword || !compareName) {
-        return res.status(400).json({ error: "Invalid password or user" });
+      if (!checkPassword) {
+        return res.status(400).json({ error: "Invalid password" });
       } else {
         const secret = process.env.SECRET;
         //Método para confirmar que realmente o segredo do JWT existe
@@ -170,7 +163,7 @@ export const authenticateUser = async (req: Request, res: Response) => {
           subject: existUser.id,
         });
 
-        res.status(200).json({ message: "Authentication successful", token });
+        res.status(200).json({ message: "Authentication successful", token, user: existUser });
       }
     }
   } catch (error) {
@@ -190,10 +183,15 @@ export const authenticateUser = async (req: Request, res: Response) => {
   }
 };
 
+//Requisição para verificar se o token é válido (Somente retorna se for válido, se não for, nem aqui chega, para no middleware)
+export const authenticateIsValid = async (req: Request, res: Response) => {
+  res.status(200).json({ message: "Token is valid" });
+};
+
 //Requisção para criar um token para o Administrador
 export const authenticateAdmin = async (req: Request, res: Response) => {
   try {
-    const { name, password, confirmPassword, email } = authenticationSchema.parse(req.body);
+    const { name, password, confirmPassword, email } = authenticationSchemaAdmin.parse(req.body);
 
     if (confirmPassword !== password) {
       return res.status(400).json({ error: "Check your password" });
@@ -253,8 +251,8 @@ export const authenticateAdmin = async (req: Request, res: Response) => {
 export const editUser = async (req: Request, res: Response) => {
   try {
     const idUser = req.id_User; //Id vem do token
-    const userData = userSchema.parse(req.body);
-    const { name, password, confirmPassword, email, telefone, latitude, longitude } = userData;
+    const userData = userUpdateSchema.parse(req.body);
+    const { name, email, telefone, latitude, longitude } = userData;
 
     //Procurando o usuário pelo o id
     const existUserWithId = await prisma.user.findUnique({
@@ -268,24 +266,24 @@ export const editUser = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Not existing user" });
     }
 
-    if (confirmPassword !== password) {
-      return res.status(400).json({ error: "Check your password" });
-    }
-
-    //Criptografando a senha do usuário:
-    const salt = await bcryptjs.genSalt(15);
-    const hashPassword = await bcryptjs.hash(password, salt);
-
     //Validando email e telefone
-    const userUpdate = await prisma.user.count({
-      where:{
+    const userUpdateEmail = await prisma.user.findFirst({
+      where: {
         email: email,
-        password: password,
-        id: { not: idUser}
+        id: { not: idUser }
       }
     });
-    if (userUpdate > 0) {
-      return res.status(409).json({ error: "E-mail or phone is already being used by another user" });
+
+    const userUpdatePhone = await prisma.user.findFirst({
+      where: {
+        telefone: telefone,
+        id: { not: idUser }
+      }
+    })
+    if (userUpdateEmail) {
+      return res.status(409).json({ error: "E-mail is already being used by another user" });
+    } else if (userUpdatePhone) {
+      return res.status(409).json({ error: "Phone is already being used by another user" });
     }
 
     const updateUser = await prisma.user.update({
@@ -294,7 +292,6 @@ export const editUser = async (req: Request, res: Response) => {
       },
       data: {
         name: name,
-        password: hashPassword,
         email: email,
         telefone: telefone,
         latitude: latitude,
@@ -310,7 +307,7 @@ export const editUser = async (req: Request, res: Response) => {
         field: err.path.join('.'),
         message: err.message,
       }));
-  
+
       return res.status(400).json({ error: 'Validation failed', details: errorDetails });
     } else {
       console.error('Error retrieving users: ', error);
@@ -318,6 +315,54 @@ export const editUser = async (req: Request, res: Response) => {
     }
   }
 };
+
+//Método para atualizar senha do usuário
+export const editPassword = async (req: Request, res: Response) => {
+  try {
+    const userData = userResetPasswordSchema.parse(req.body);
+    const { email, password } = userData;
+
+    //Procurando o usuário pelo o email
+    const existUserWithEmail = await prisma.user.findUnique({
+      where: {
+        email: email,
+      },
+    });
+
+    //Confirmando que o usuário existe
+    if (!existUserWithEmail) {
+      return res.status(404).json({ error: "Not existing user" });
+    }
+    //Criptografando a senha do usuário:
+    const salt = await bcryptjs.genSalt(15);
+    const hashPassword = await bcryptjs.hash(password, salt);
+
+    const resetPassword = await prisma.user.update({
+      where: {
+        email: email,
+      },
+      data: {
+        password: hashPassword,
+      },
+    });
+    
+    return res.status(200).json({ message: "Reset Password" })
+
+  } catch (error) {
+  //Retornando erro caso haja
+  if (error instanceof ZodError) {
+    const errorDetails = error.errors.map(err => ({
+      field: err.path.join('.'),
+      message: err.message,
+    }));
+
+    return res.status(400).json({ error: 'Validation failed', details: errorDetails });
+  } else {
+    console.error('Error retrieving users: ', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+}
 
 //Requisiçõa para remover um usuário
 export const removeUsers = async (req: Request, res: Response) => {
@@ -370,6 +415,7 @@ export const uploadImage = async (req: Request, res: Response) => {
     if (!existUser) {
       return res.status(404).json({ error: "User does not exist" });
     } else {
+
       //Atualizando o usuário com a imagem
       await prisma.user.update({
         where: {
@@ -380,7 +426,7 @@ export const uploadImage = async (req: Request, res: Response) => {
         },
       });
 
-      res.status(201).json({ massage: "Imagem adicionada" });
+      res.status(201).json({ massage: "Imagem adicionada", image: requestImage.filename });
     }
   } catch (error) {
     //Retornando erro caso haja
